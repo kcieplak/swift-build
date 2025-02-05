@@ -496,6 +496,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "CURRENT_PROJECT_VERSION": "3.1",
             "SWIFT_EXEC": swiftCompilerPath.str,
             "SWIFT_VERSION": swiftVersion,
+            "_LINKER_EXE": ldPath.str,
             "SWIFT_INCLUDE_PATHS": "/tmp/some-dir",
         ]
         let testProject = TestProject(
@@ -609,6 +610,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "CURRENT_PROJECT_VERSION": "3.1",
             "SWIFT_EXEC": swiftCompilerPath.str,
             "SWIFT_VERSION": swiftVersion,
+            "_LINKER_EXE": ldPath.str,
             "SWIFT_INCLUDE_PATHS": "/tmp/some-dir",
 
             // See <rdar://65242911>
@@ -700,6 +702,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                     "SUPPORTED_PLATFORMS": "macosx",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                 ])
             ],
             targets: [target1, target2]
@@ -1203,6 +1206,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     // Ensure that the index build forces distinct build directories for macOS vs macCatalyst, even if the project overrides and sets the same EFFECTIVE_PLATFORM_NAME.
                     "EFFECTIVE_PLATFORM_NAME[sdk=macos*]": "-mac",
                 ])],
@@ -1253,6 +1257,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "GENERATE_RESOURCE_ACCESSORS": "YES",
                     "USE_HEADERMAP": "NO"]),
@@ -1376,6 +1381,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                         "OTHER_SWIFT_FLAGS[variant=dev]": "-DSOME_DEV_FLAG",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                     ])
             ],
             targets: [
@@ -1521,6 +1527,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                         "SUPPORTED_PLATFORMS": "macosx",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                     ])
             ],
             targets: [

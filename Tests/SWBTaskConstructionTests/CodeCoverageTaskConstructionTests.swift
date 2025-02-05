@@ -35,6 +35,7 @@ fileprivate struct CodeCoverageTaskConstructionTests: CoreBasedTests {
                                         "PRODUCT_NAME": "$(TARGET_NAME)",
                                         "SWIFT_EXEC": swiftCompilerPath.str,
                                         "SWIFT_VERSION": swiftVersion,
+                                        "_LINKER_EXE": ldPath.str,
                                         "CLANG_USE_RESPONSE_FILE": "NO",
                                        ])
             ],

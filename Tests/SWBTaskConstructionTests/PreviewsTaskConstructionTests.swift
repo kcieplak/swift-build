@@ -47,6 +47,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                             "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE": ldPath.str,
                             "ARCHS": archs.joined(separator: " "),
                             "VALID_ARCHS": "$(inherited) x86_64h",
                             "ENABLE_PREVIEWS": "YES",
@@ -324,6 +325,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                             "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE": ldPath.str,
                             "ENABLE_PREVIEWS": "NO",
                             "ENABLE_XOJIT_PREVIEWS": "YES",
                             "ENABLE_DEBUG_DYLIB": "YES",
@@ -765,6 +767,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                         "SDKROOT": "iphoneos",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": "5.0",
+                        "_LINKER_EXE": ldPath.str,
                         "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
                     ])
                 ],
@@ -825,6 +828,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                 results.checkNoNotes()
 
                 results.checkTasks(.matchRuleItemPattern(.prefix("Swift"))) { _ in }
+                results.checkTask(.matchRuleType("ProcessSDKImports")) { _ in }
                 results.consumeTasksMatchingRuleTypes(["Copy", "CopySwiftLibs", "ExtractAppIntentsMetadata", "Gate", "GenerateDSYMFile", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "ClangStatCache", "RegisterExecutionPolicyException", "AppIntentsSSUTraining", "ProcessInfoPlistFile", "Touch", "Validate", "LinkAssetCatalogSignature", "CodeSign", "ProcessProductPackaging", "ProcessProductPackagingDER", "Ld"])
 
                 results.checkTask(.matchRuleType("GenerateAssetSymbols")) { task in
@@ -954,6 +958,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                         "SDKROOT": "iphoneos",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": "5.0",
+                        "_LINKER_EXE": ldPath.str,
                         "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
                     ])
                 ],
@@ -1000,6 +1005,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                 results.checkNoNotes()
 
                 results.checkTasks(.matchRuleItemPattern(.prefix("Swift"))) { _ in }
+                results.checkTask(.matchRuleType("ProcessSDKImports")) { _ in }
                 results.consumeTasksMatchingRuleTypes(["Copy", "CopySwiftLibs", "ExtractAppIntentsMetadata", "Gate", "GenerateDSYMFile", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "ClangStatCache", "RegisterExecutionPolicyException", "AppIntentsSSUTraining", "ProcessInfoPlistFile", "Touch", "Validate", "LinkAssetCatalogSignature", "CodeSign", "ProcessProductPackaging", "ProcessProductPackagingDER", "ConstructStubExecutorLinkFileList"])
 
                 results.checkTask(.matchRule(["Ld", "\(srcRoot.str)/build/Debug-iphonesimulator/Tool", "normal"])) { task in
@@ -1044,6 +1050,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                         "SDKROOT": "iphoneos",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": "5.0",
+                        "_LINKER_EXE": ldPath.str,
                         "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
                     ])
                 ],
@@ -1084,10 +1091,10 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
 
             let fs = PseudoFS()
             try fs.writeSimulatedPreviewsJITStubExecutorLibraries(sdk: core.loadSDK(.iOSSimulator))
-
+            
             await tester.checkBuild(buildParameters, fs: fs, clientDelegate: ClientDelegate()) { results in
                 results.checkTasks(.matchRuleItemPattern(.prefix("Swift"))) { _ in }
-                results.consumeTasksMatchingRuleTypes(["Copy", "CopySwiftLibs", "ExtractAppIntentsMetadata", "Gate", "GenerateDSYMFile", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "ClangStatCache", "RegisterExecutionPolicyException", "AppIntentsSSUTraining", "ProcessInfoPlistFile", "Touch", "Validate", "LinkAssetCatalogSignature", "CodeSign", "ProcessProductPackaging", "ProcessProductPackagingDER", "ConstructStubExecutorLinkFileList"])
+                results.consumeTasksMatchingRuleTypes(["Copy", "CopySwiftLibs", "ExtractAppIntentsMetadata", "Gate", "GenerateDSYMFile", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "ClangStatCache", "RegisterExecutionPolicyException", "AppIntentsSSUTraining", "ProcessInfoPlistFile", "Touch", "Validate", "LinkAssetCatalogSignature", "CodeSign", "ProcessProductPackaging", "ProcessProductPackagingDER", "ConstructStubExecutorLinkFileList", "ProcessSDKImports"])
 
                 results.checkTask(.matchRule(["Ld", "\(srcRoot.str)/build/Debug-iphonesimulator/__preview.dylib", "normal"])) { task in
                     task.checkCommandLineDoesNotContain("-dyld_env")
@@ -1145,6 +1152,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                         "SDKROOT": "iphoneos",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": "5.0",
+                        "_LINKER_EXE": ldPath.str,
                         "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
                     ])
                 ],

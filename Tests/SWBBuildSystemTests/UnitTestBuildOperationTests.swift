@@ -887,6 +887,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                     "COPY_PHASE_STRIP": "NO",
                                     "SDKROOT": "macosx",
                                     "SWIFT_VERSION": swiftVersion,
+                                    "_LINKER_EXE": ldPath.str,
                                 ]),
                         ],
                         targets: [
@@ -1074,6 +1075,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                     "COPY_PHASE_STRIP": "NO",
                                     "SDKROOT": "iphoneos",
                                     "SWIFT_VERSION": swiftVersion,
+                                    "_LINKER_EXE": ldPath.str,
                                 ]),
                         ],
                         targets: [

@@ -46,7 +46,7 @@ fileprivate struct SwiftDriverPerfTests: CoreBasedTests, PerfTests {
         }
 
         let swiftVersion = try await self.swiftVersion
-        let testProject = TestProject(
+        let testProject = try await TestProject(
             "aProject",
             defaultConfigurationName: "Debug",
             groupTree: TestGroup("Root", children: (0..<Config.numTargets).flatMap { targetNum in
@@ -57,9 +57,8 @@ fileprivate struct SwiftDriverPerfTests: CoreBasedTests, PerfTests {
                 buildSettings: [
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "SWIFT_VERSION": swiftVersion,
-
+                    "_LINKER_EXE": ldPath.str,
                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-
                     "DSTROOT": tmpDir.path.join("dstroot").str,
                 ]
             )],
@@ -120,7 +119,7 @@ fileprivate struct SwiftDriverPerfTests: CoreBasedTests, PerfTests {
         let swiftVersion = try await self.swiftVersion
         try await withTemporaryDirectory { tmpDir in
             let filenames = (0..<(getEnvironmentVariable("CI") != nil ? 100 : 1000)).map { "File-\($0).swift" }
-            let testWorkspace = TestWorkspace("aWorkspace",
+            let testWorkspace = try await TestWorkspace("aWorkspace",
                                               sourceRoot: tmpDir.path.join("Test"),
                                               projects: [TestProject(
                                                 "aProject",
@@ -131,6 +130,7 @@ fileprivate struct SwiftDriverPerfTests: CoreBasedTests, PerfTests {
                                                     buildSettings: [
                                                         "PRODUCT_NAME": "$(TARGET_NAME)",
                                                         "SWIFT_VERSION": swiftVersion,
+                                                        "_LINKER_EXE": ldPath.str,
                                                         "DSTROOT": tmpDir.path.join("dstroot").str,
                                                     ]
                                                 )],

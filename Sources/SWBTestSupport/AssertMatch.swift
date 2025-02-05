@@ -252,7 +252,8 @@ package func XCTAssertEqualSequences<T: Sequence>(_ actual: T, _ expected: T, _ 
         }
     }
     message.append(messageSuffix())
-    #expect(actual == expected, Comment(rawValue: message.joined(separator: "; ")), sourceLocation: sourceLocation)
+    // rdar://144780543 - An empty comment crashes at runtime in testing module.
+    #expect(actual == expected, message.isEmpty ? nil : Comment(rawValue: message.joined(separator: "; ")), sourceLocation: sourceLocation)
 }
 
 package func XCTAssertSuperset<T>(_ value1: @autoclosure @escaping () throws -> Set<T>, _ value2: @autoclosure @escaping () throws -> Set<T>, sourceLocation: SourceLocation = #_sourceLocation) rethrows where T: Comparable, T: Hashable {

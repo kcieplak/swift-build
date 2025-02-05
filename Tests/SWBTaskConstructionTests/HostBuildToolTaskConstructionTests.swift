@@ -34,6 +34,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     buildSettings: [
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                     ]),
@@ -93,6 +94,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     buildSettings: [
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGN_IDENTITY": "Apple Development",
@@ -208,6 +210,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     buildSettings: [
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGN_IDENTITY": "Apple Development",
@@ -323,6 +326,7 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                     buildSettings: [
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGN_IDENTITY": "Apple Development",
@@ -419,7 +423,8 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                         "SWIFT_VERSION": swiftVersion,
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SWIFT_EXEC": swiftCompilerPath.str
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "_LINKER_EXE": ldPath.str,
                     ]),
             ],
             targets: [

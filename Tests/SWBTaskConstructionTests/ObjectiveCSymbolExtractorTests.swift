@@ -86,6 +86,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "ONLY_ACTIVE_ARCH": "NO",
                                     "SWIFT_EXEC": swiftCompilerPath.str,
                                     "SWIFT_VERSION": "5.0",
+                                    "_LINKER_EXE": ldPath.str,
                                     // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
                                     "TAPI_EXEC": tapiToolPath.str,
                                     "DOCC_EXEC": doccToolPath.str,
@@ -233,6 +234,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                 "ONLY_ACTIVE_ARCH": "NO",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": "5.0",
+                                "_LINKER_EXE": ldPath.str,
                                 // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
                                 "TAPI_EXEC": tapiToolPath.str,
                                 "DOCC_EXEC": doccToolPath.str,
@@ -367,6 +369,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "ARCHS": "arm64 x86_64",
                                     "ONLY_ACTIVE_ARCH": "NO",
                                     "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "_LINKER_EXE": ldPath.str,
                                     // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
                                     "TAPI_EXEC": tapiToolPath.str,
                                     "DOCC_EXEC": doccToolPath.str,
@@ -399,6 +402,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "ARCHS": "x86_64 arm64",
                                     "ONLY_ACTIVE_ARCH": "NO",
                                     "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "_LINKER_EXE": ldPath.str,
                                     // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
                                     "TAPI_EXEC": tapiToolPath.str,
                                     "DOCC_EXEC": doccToolPath.str,
@@ -613,6 +617,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "ONLY_ACTIVE_ARCH": "NO",
                                     "SWIFT_EXEC": swiftCompilerPath.str,
                                     "SWIFT_VERSION": "5.2",
+                                    "_LINKER_EXE": ldPath.str,
                                     // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
                                     "TAPI_EXEC": tapiToolPath.str,
                                     "DOCC_EXEC": doccToolPath.str,
@@ -642,6 +647,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "ONLY_ACTIVE_ARCH": "NO",
                                     "SWIFT_EXEC": swiftCompilerPath.str,
                                     "SWIFT_VERSION": "5.2",
+                                    "_LINKER_EXE": ldPath.str,
                                     // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
                                     "TAPI_EXEC": tapiToolPath.str,
                                     "DOCC_EXEC": doccToolPath.str,
@@ -683,6 +689,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "TOOLCHAIN_DIR": core.developerPath.join("Toolchains/XcodeDefault.xctoolchain").str,
                                     // Set the real swift compiler path so we can determine the location of compatibility headers ignores file
                                     "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "_LINKER_EXE": ldPath.str,
                                     // Set the real clang tool path so that we can check it's features.json file
                                     "CC": clangCompilerPath.str,
                                 ]
@@ -800,6 +807,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "ONLY_ACTIVE_ARCH": "NO",
                                     "SWIFT_VERSION": "5.0",
                                     "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "_LINKER_EXE": ldPath.str,
                                     "CC": clangCompilerPath.str,
                                     "TAPI_EXEC": tapiToolPath.str,
                                     "DOCC_EXEC": doccToolPath.str,
@@ -834,6 +842,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "ONLY_ACTIVE_ARCH": "NO",
                                     "SWIFT_VERSION": "5.0",
                                     "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "_LINKER_EXE": ldPath.str,
                                     "CC": clangCompilerPath.str,
                                     "TAPI_EXEC": tapiToolPath.str,
                                     "DOCC_EXEC": doccToolPath.str,

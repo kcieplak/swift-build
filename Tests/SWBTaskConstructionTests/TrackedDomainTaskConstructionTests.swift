@@ -48,6 +48,7 @@ fileprivate struct TrackedDomainTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_VERSION": "5",
                         "SWIFT_EXEC": swiftCompilerPath.str,
+                        "_LINKER_EXE": ldPath.str,
                         "LIBTOOL": libtoolPath.str,
                     ]),
             ],

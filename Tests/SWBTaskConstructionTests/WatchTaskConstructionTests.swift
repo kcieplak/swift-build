@@ -67,6 +67,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                         "SWIFT_VERSION": swiftVersion,
                         "PRODUCT_BUNDLE_IDENTIFIER": "com.test.aProject",
                         "CLANG_USE_RESPONSE_FILE": "NO",
+                        "_LINKER_EXE": ldPath.str,
                     ]),
             ],
             targets: [
@@ -202,6 +203,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
         try fs.write(core.loadSDK(.watchOSSimulator).path.join("Library/Application Support/WatchKit/WK"), contents: "WatchKitStub")
 
         let actoolPath = try await self.actoolPath
+        let checkSDKImports = try await supportsSDKImports
 
         // Check the debug build, for the device.
         try await tester.checkBuild(fs: fs) { results in
@@ -215,6 +217,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
             results.checkTasks(.matchRuleType("CreateUniversalBinary")) { _ in }
             results.checkTasks(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
             results.checkTasks(.matchRuleType("AppIntentsSSUTraining")) { _ in }
+            results.checkTasks(.matchRuleType("ProcessSDKImports")) { _ in }
 
             // Check the watchOS extension
             try results.checkTarget("Watchable WatchKit Extension") { target in
@@ -500,6 +503,10 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                     task.checkCommandLine(["builtin-validationUtility", builtHostIOSAppPath, "-infoplist-subpath", "Info.plist"])
                 }
 
+                if checkSDKImports {
+                    results.checkTasks(.matchRuleType("ProcessSDKImports")) { _ in }
+                }
+
                 // There should be no other tasks for this target.
                 results.checkNoTask(.matchTarget(target))
             }
@@ -522,6 +529,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
             results.checkTasks(.matchRuleType("RegisterExecutionPolicyException")) { _ in }
             results.checkTasks(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
             results.checkTasks(.matchRuleType("AppIntentsSSUTraining")) { _ in }
+            results.checkTasks(.matchRuleType("ProcessSDKImports")) { _ in }
 
             // Check the watchOS extension
             results.checkTarget("Watchable WatchKit Extension") { target in
@@ -689,6 +697,9 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
 
             // Check the iOS app
             results.checkTarget("Watchable") { target in
+                // Ignore certain classes of tasks.
+                results.checkTasks(.matchRuleType("ProcessSDKImports")) { _ in }
+
                 let builtHostIOSAppPath = "\(SRCROOT)/build/Debug-iphonesimulator/Watchable.app"
 
                 // We should have one clang, one swiftc, and link task per arch.
@@ -813,6 +824,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
             results.checkTasks(.matchRuleType("RegisterExecutionPolicyException")) { _ in }
             results.checkTasks(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
             results.checkTasks(.matchRuleType("AppIntentsSSUTraining")) { _ in }
+            
 
             // Check the watchOS extension
             results.checkTarget("Watchable WatchKit Extension") { target in
@@ -839,7 +851,9 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 results.checkTaskExists(.matchTarget(target), .matchRuleType("SwiftDriver Compilation"))
                 results.checkTaskExists(.matchTarget(target), .matchRuleType("SwiftDriver Compilation Requirements"))
                 results.checkTaskExists(.matchTarget(target), .matchRuleType("Ld"))
-
+                if checkSDKImports {
+                    results.checkTasks(.matchTarget(target), .matchRuleType("ProcessSDKImports")) { _ in}
+                }
                 // Ensure the privacy file is copied.
                 results.checkTask(.matchTarget(target), .matchRuleType("CopyPlistFile")) { task in
                     task.checkInputs(contain: [.name("PrivacyInfo.xcprivacy")])
@@ -937,6 +951,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileStoryboard")) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("LinkStoryboards")) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("CreateUniversalBinary")) { _ in }
+                results.checkTasks(.matchTarget(target), .matchRuleType("ProcessSDKImports")) { _ in }
 
                 for arch in archs {
                     results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("Watchable.swiftdoc"), .matchRuleItemBasename("\(arch)-apple-ios.swiftdoc")) { _ in }
@@ -1030,6 +1045,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                         "CODE_SIGN_IDENTITY": "Apple Development",
                         "SDKROOT": "iphoneos",
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                     ]),
             ],
             targets: [
@@ -1445,6 +1461,7 @@ fileprivate struct WatchTaskConstructionTests: CoreBasedTests {
                                                 "SDKROOT": "watchos",
                                                 "DEFINES_MODULE": "YES",
                                                 "SWIFT_EXEC": swiftCompilerPath.str,
+                                                "_LINKER_EXE": ldPath.str,
                                                 "CODE_SIGNING_ALLOWED": "NO",
                                                 "SWIFT_VERSION": swiftVersion,
                                                 "TAPI_EXEC": tapiToolPath.str,

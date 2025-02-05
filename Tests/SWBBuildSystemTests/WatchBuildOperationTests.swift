@@ -48,6 +48,7 @@ fileprivate struct WatchBuildOperationTests: CoreBasedTests {
                             "CODE_SIGN_IDENTITY": "Apple Development",
                             "SDKROOT": "watchos",
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE": ldPath.str,
                         ]),
                 ],
                 targets: [

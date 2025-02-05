@@ -1633,6 +1633,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "5.0",
+                    "_LINKER_EXE": ldPath.str,
                     "CC": clangCompilerPath.str,
                 ]),
             ],

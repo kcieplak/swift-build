@@ -47,6 +47,7 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
                         "BUILD_ACTIVE_RESOURCES_ONLY": "YES",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": "5.0",
+                        "_LINKER_EXE": ldPath.str,
                     ].addingContents(of: thinningBuildSettings)),
             ],
             targets: [

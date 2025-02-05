@@ -16,8 +16,8 @@ import SWBCore
 import SWBProtocol
 import SWBTestSupport
 @_spi(Testing) import SWBUtil
-
 import SWBTaskConstruction
+import SwiftBuild
 
 /// Task construction tests related to Swift compilation.
 @Suite
@@ -124,6 +124,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "CURRENT_PROJECT_VERSION": "3.1",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "MACOSX_DEPLOYMENT_TARGET": deploymentTargetVersion,
                         "SWIFT_EMIT_MODULE_INTERFACE": "YES",
                         "TAPI_EXEC": tapiToolPath.str,
@@ -179,6 +180,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let effectiveToolchain = core.toolchainRegistry.lookup(toolchainIdentifier) ?? defaultToolchain
 
         // Check the debug build.
+        let checkSDKImports = try await supportsSDKImports
         await tester.checkBuild(parameters, fs: fs) { results in
             results.checkTarget("AppTarget") { target in
                 // There should be a WriteAuxiliaryFile task to create the versioning file.
@@ -370,9 +372,34 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
                     let toolchain = toolchainIdentifier != "default" ? "OSX10.15" : "XcodeDefault"
                     task.checkCommandLine(([
-                        ["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget.LinkFileList"],
+                        [
+                            "clang",
+                            "-Xlinker", "-reproducible",
+                            "-target", "x86_64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)",
+                            "-isysroot", core.loadSDK(.macOS).path.str,
+                            "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug",
+                            "-L\(SRCROOT)/build/Debug",
+                            "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug",
+                            "-F\(SRCROOT)/build/Debug",
+                            "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget.LinkFileList"
+                        ],
                         shouldEmitSwiftRPath ? ["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"] : [],
-                        ["-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.str)/Toolchains/\(toolchain).xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-framework", "FwkTarget", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"]
+                        [
+                            "-Xlinker", "-dependency_info",
+                            "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_dependency_info.dat",
+                            "-fobjc-link-runtime",
+                            "-L\(core.developerPath.str)/Toolchains/\(toolchain).xctoolchain/usr/lib/swift/macosx",
+                            "-L/usr/lib/swift",
+                            "-framework", "FwkTarget"
+                        ],
+                        checkSDKImports ? [
+                            "-Xlinker", "-sdk_imports",
+                            "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_normal_x86_64_sdk_imports.json",
+                            "-Xlinker", "-sdk_imports_each_object"
+                        ] : [],
+                        [
+                            "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"
+                        ]
                     ] as [[String]]).reduce([], +))
 
                     task.checkInputs([
@@ -383,13 +410,20 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget.LinkFileList"),
                         .path("\(SRCROOT)/build/Debug"),
                         .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
-                        .namePattern(.prefix("target-"))])
-
-                    task.checkOutputs([
-                        .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"),
-                        .namePattern(.prefix("Linked Binary \(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget")),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_dependency_info.dat"),
+                        .namePattern(.prefix("target-")),
                     ])
+
+                    task.checkOutputs(
+                        [
+                            .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"),
+                            .namePattern(.prefix("Linked Binary \(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget")),
+                            .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_dependency_info.dat"),
+                        ]
+                            + (checkSDKImports
+                                ? [
+                                    .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_normal_x86_64_sdk_imports.json")
+                                ] : [])
+                    )
 
                     // We used to pass the deployment target to the linker in the environment, but this is supposedly no longer necessary.
                     task.checkEnvironment([:], exact: true)
@@ -504,6 +538,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             // Ignore all Extract App Intents Metadata tasks.
             results.checkTasks(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
 
+            results.checkTasks(.matchRuleType("ProcessSDKImports")) { _ in }
+
             // There should be no other unmatched tasks.
             results.checkNoTask()
 
@@ -527,6 +563,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     "CODE_SIGNING_ALLOWED": "NO",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE" : ldPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "SDKROOT": "auto",
                     "SDK_VARIANT": "auto",
@@ -584,6 +621,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                                 "DEFINES_MODULE": "YES",
                                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                                 "SWIFT_VERSION": swiftVersion,
+                                                "_LINKER_EXE": ldPath.str,
                                                 "TAPI_EXEC": tapiToolPath.str,
                                                ]),
                     ],
@@ -1163,6 +1201,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "CODE_SIGN_IDENTITY": "",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "LIBTOOL": libtoolPath.str,
                     ]),
             ],
@@ -1242,6 +1281,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
                         "SWIFT_ALLOW_INSTALL_OBJC_HEADER": "YES",
                         "TAPI_EXEC": tapiToolPath.str,
+                        "_LINKER_EXE": ldPath.str,
                     ]),
             ],
             targets: [
@@ -1254,6 +1294,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                                 "DEFINES_MODULE": "YES",
                                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                                 "SWIFT_VERSION": swiftVersion,
+                                                "_LINKER_EXE": ldPath.str,
                                                 "ARCHS": archs.joined(separator: " "),
                                                 "EXCLUDED_ARCHS": excludedArchs.joined(separator: " "),
                                                ]),
@@ -1368,6 +1409,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                                 "SDKROOT": "macosx",
                                                 "DEFINES_MODULE": "YES",
                                                 "SWIFT_VERSION": swiftVersion,
+                                                "_LINKER_EXE" : ldPath.str,
                                                 "TAPI_EXEC": tapiToolPath.str,
                                                ]),
                     ],
@@ -1427,6 +1469,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                                buildSettings: [
                                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                                 "SWIFT_VERSION": swiftVersion,
+                                                "_LINKER_EXE" : ldPath.str,
                                                ]),
                     ],
                     buildPhases: [
@@ -1490,6 +1533,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                                buildSettings: [
                                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                                 "SWIFT_VERSION": swiftVersion,
+                                                "_LINKER_EXE" : ldPath.str,
                                                 "SWIFT_INSTALL_MODULE": "NO",
                                                ]),
                     ],
@@ -1547,6 +1591,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                                 "SDKROOT": "macosx",
                                                 "SWIFT_OBJC_BRIDGING_HEADER": "swift-bridge-header.h",
                                                 "SWIFT_VERSION": swiftVersion,
+                                                "_LINKER_EXE" : ldPath.str,
                                                ]),
                     ],
                     buildPhases: [
@@ -1608,6 +1653,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                                 "SDKROOT": "macosx",
                                                 "SWIFT_OBJC_BRIDGING_HEADER": "../aProject/./swift-bridge-header.h",
                                                 "SWIFT_VERSION": swiftVersion,
+                                                "_LINKER_EXE" : ldPath.str,
                                                ]),
                     ],
                     buildPhases: [
@@ -1659,6 +1705,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE" : ldPath.str,
                         "LIBTOOL": libtoolPath.str,
                     ]),
             ],
@@ -1818,7 +1865,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
         let swiftFeatures = try await self.swiftFeatures
-        let testProject = TestProject(
+        let testProject = try await TestProject(
             "ProjectName",
             groupTree: TestGroup(
                 "SomeFiles", path: "Sources",
@@ -1837,6 +1884,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "SDKROOT": sdkRoot,
                             "SWIFT_EXEC": swiftCompilerPath.str,
+                            "_LINKER_EXE" : ldPath.str,
                             "SWIFT_ENABLE_EMIT_CONST_VALUES": "YES",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar"
                         ]),
@@ -1923,6 +1971,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "TestProduct",
                             "ARCHS": "x86_64",
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE" : ldPath.str,
                             "SDKROOT": "macosx",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                         ]),
@@ -1998,6 +2047,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             "ARCHS": "x86_64",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE" : ldPath.str,
                             "TAPI_EXEC": tapiToolPath.str,
                             "SUPPORTS_TEXT_BASED_API": "YES",
                             "SDKROOT": sdkRoot
@@ -2054,6 +2104,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             "ARCHS": "x86_64",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE": ldPath.str,
                             "TAPI_EXEC": tapiToolPath.str,
                         ]),
                     ],
@@ -2114,6 +2165,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SWIFT_EXEC": swiftCompilerPath.str,
+                    "_LINKER_EXE": ldPath.str,
                     "SWIFT_VERSION": swiftVersion,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                 ]),
@@ -2143,7 +2195,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             ])
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
-        await tester.checkBuild { results in
+        await tester.checkBuild() { results in
             results.checkNoDiagnostics()
             results.checkTarget("Executable") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
@@ -2179,6 +2231,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     "SDKROOT": "auto",
                     "SDK_VARIANT": "auto",
                     "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                    "_LINKER_EXE": ldPath.str,
                 ]),
             ],
             targets: [
@@ -2274,6 +2327,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "CURRENT_PROJECT_VERSION": "3.1",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "USE_SWIFT_RESPONSE_FILE": "YES",
                         // remove in 51621328
                         "SWIFT_RESPONSE_FILE_PATH": "$(SWIFT_RESPONSE_FILE_PATH_$(variant)_$(arch))",
@@ -2365,6 +2419,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "CURRENT_PROJECT_VERSION": "3.1",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str
                     ])],
             targets: [
                 TestStandardTarget(
@@ -2482,6 +2537,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "CURRENT_PROJECT_VERSION": "3.1",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "SWIFT_INCLUDE_PATHS": "/tmp/some-dir",
                     ])],
             targets: [
@@ -2547,6 +2603,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "CURRENT_PROJECT_VERSION": "3.1",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "SWIFT_RESPONSE_FILE_PATH": "",
                         "USE_SWIFT_RESPONSE_FILE": "YES",
                     ])],
@@ -2588,6 +2645,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "CURRENT_PROJECT_VERSION": "3.1",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "SWIFT_RESPONSE_FILE_PATH": "",
                         "USE_SWIFT_RESPONSE_FILE": "NO",
                     ])],
@@ -2628,6 +2686,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "CURRENT_PROJECT_VERSION": "3.1",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "USE_SWIFT_RESPONSE_FILE": "YES",
                         // remove in 51621328
                         "SWIFT_RESPONSE_FILE_PATH": "$(SWIFT_RESPONSE_FILE_PATH_$(variant)_$(arch))",
@@ -2688,6 +2747,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "SUPPORTS_MACCATALYST": "YES",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                     ]
                 )
             ],
@@ -2711,10 +2771,36 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
-
+        let checkSDKImports = try await supportsSDKImports
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .macOS)) { results in
             results.checkTask(.matchRuleType("Ld")) { task in
-                task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", "\(core.loadSDK(.macOS).path.str)", "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget.swiftmodule", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"])
+                task.checkCommandLine([
+                    "clang",
+                    "-Xlinker", "-reproducible",
+                    "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)",
+                    "-isysroot", "\(core.loadSDK(.macOS).path.str)",
+                    "-Os",
+                    "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug",
+                    "-L\(SRCROOT)/build/Debug",
+                    "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug",
+                    "-F\(SRCROOT)/build/Debug",
+                    "-filelist",
+                    "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget.LinkFileList",
+                    "-Xlinker", "-object_path_lto",
+                    "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_lto.o",
+                    "-Xlinker", "-dependency_info",
+                    "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_dependency_info.dat",
+                    "-fobjc-link-runtime", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx",
+                    "-L/usr/lib/swift",
+                    "-Xlinker", "-add_ast_path",
+                    "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget.swiftmodule"
+                ] + (checkSDKImports ? [
+                     "-Xlinker", "-sdk_imports",
+                     "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_normal_x86_64_sdk_imports.json",
+                     "-Xlinker", "-sdk_imports_each_object"
+                 ] : []) + [
+                    "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget",
+                ])
             }
             results.checkNoDiagnostics()
         }
@@ -2725,21 +2811,113 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .macCatalyst)) { results in
             results.checkTask(.matchRuleType("Ld")) { task in
-                task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-ios\(catalystVersion.description)-macabi", "-isysroot", "\(core.loadSDK(.macOS).path.str)", "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug-maccatalyst", "-L\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)", "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst", "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug-maccatalyst", "-F\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)", "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks", "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks", "-filelist", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget.LinkFileList", "-Xlinker", "-rpath", "-Xlinker", "@loader_path/../Frameworks", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/System/iOSSupport/usr/lib/swift", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget.swiftmodule", "-o", "\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.app/Contents/MacOS/AppTarget"])
+                task.checkCommandLine([
+                    "clang",
+                    "-Xlinker", "-reproducible",
+                    "-target",
+                    "x86_64-apple-ios\(catalystVersion.description)-macabi",
+                    "-isysroot", "\(core.loadSDK(.macOS).path.str)",
+                    "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug-maccatalyst",
+                    "-L\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)",
+                    "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib",
+                    "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst",
+                    "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib",
+                    "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst",
+                    "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug-maccatalyst", "-F\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)",
+                    "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
+                    "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
+                    "-filelist",
+                    "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget.LinkFileList",
+                    "-Xlinker", "-rpath",
+                    "-Xlinker", "@loader_path/../Frameworks",
+                    "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget_lto.o",
+                    "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget_dependency_info.dat",
+                    "-fobjc-link-runtime",
+                    "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx",
+                    "-L/System/iOSSupport/usr/lib/swift",
+                    "-L/usr/lib/swift",
+                    "-Xlinker", "-add_ast_path",
+                    "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget.swiftmodule",
+                ] +  (checkSDKImports ? [
+                     "-Xlinker", "-sdk_imports",
+                     "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget_normal_x86_64_sdk_imports.json",
+                     "-Xlinker", "-sdk_imports_each_object"
+                 ] : []) + [
+                    "-o", "\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.app/Contents/MacOS/AppTarget",
+                 ])
             }
             results.checkNoDiagnostics()
         }
 
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .macOS, overrides: ["IS_ZIPPERED": "YES"])) { results in
             results.checkTask(.matchRuleType("Ld")) { task in
-                task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", "\(core.loadSDK(.macOS).path.str)", "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget.swiftmodule", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"])
+                task.checkCommandLine([
+                    "clang",
+                    "-Xlinker", "-reproducible",
+                    "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)",
+                    "-isysroot", "\(core.loadSDK(.macOS).path.str)",
+                    "-Os",
+                    "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug",
+                    "-L\(SRCROOT)/build/Debug",
+                    "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug",
+                    "-F\(SRCROOT)/build/Debug",
+                    "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget.LinkFileList",
+                    "-Xlinker", "-object_path_lto",
+                    "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_lto.o",
+                    "-Xlinker", "-dependency_info",
+                    "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_dependency_info.dat",
+                    "-fobjc-link-runtime", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx",
+                    "-L/usr/lib/swift",
+                    "-Xlinker", "-add_ast_path",
+                    "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget.swiftmodule",
+                ] +  (checkSDKImports ? [
+                     "-Xlinker", "-sdk_imports",
+                     "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/AppTarget_normal_x86_64_sdk_imports.json",
+                     "-Xlinker", "-sdk_imports_each_object"
+                ] : []) + [
+                    "-o",
+                    "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"
+                ])
             }
             results.checkNoDiagnostics()
         }
 
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .macCatalyst, overrides: ["IS_ZIPPERED": "YES"])) { results in
             results.checkTask(.matchRuleType("Ld")) { task in
-                task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-ios\(catalystVersion.description)-macabi", "-isysroot", "\(core.loadSDK(.macOS).path.str)", "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug-maccatalyst", "-L\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)", "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst", "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug-maccatalyst", "-F\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)", "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks", "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks", "-filelist", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget.LinkFileList", "-Xlinker", "-rpath", "-Xlinker", "@loader_path/../Frameworks", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget.swiftmodule", "-o", "\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.app/Contents/MacOS/AppTarget"])
+                task.checkCommandLine([
+                    "clang",
+                    "-Xlinker",
+                    "-reproducible",
+                    "-target", "x86_64-apple-ios\(catalystVersion.description)-macabi",
+                    "-isysroot", "\(core.loadSDK(.macOS).path.str)",
+                    "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug-maccatalyst",
+                    "-L\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)",
+                    "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib",
+                    "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst",
+                    "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib",
+                    "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst",
+                    "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug-maccatalyst",
+                    "-F\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)",
+                    "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
+                    "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
+                    "-filelist", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget.LinkFileList",
+                    "-Xlinker", "-rpath",
+                    "-Xlinker", "@loader_path/../Frameworks",
+                    "-Xlinker", "-object_path_lto",
+                    "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget_lto.o",
+                    "-Xlinker", "-dependency_info",
+                    "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget_dependency_info.dat",
+                    "-fobjc-link-runtime", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx",
+                    "-L/usr/lib/swift",
+                    "-Xlinker", "-add_ast_path",
+                    "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget.swiftmodule",
+                    ] +  (checkSDKImports ? [
+                     "-Xlinker", "-sdk_imports",
+                     "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/AppTarget_normal_x86_64_sdk_imports.json",
+                     "-Xlinker", "-sdk_imports_each_object"
+                ] : []) + [
+                    "-o", "\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.app/Contents/MacOS/AppTarget"
+                ])
             }
             results.checkNoDiagnostics()
         }
@@ -2773,6 +2951,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "SWIFT_OBJC_INTERFACE_HEADER_NAME": "Target-Swift.h",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                     ]
                 )],
                 targets: [
@@ -2818,6 +2997,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "TAPI_EXEC": tapiToolPath.str,
                     ]),
             ],
@@ -2857,6 +3037,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                         "TAPI_EXEC": tapiToolPath.str,
                     ]),
@@ -2897,6 +3078,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "SWIFT_USE_INTEGRATED_DRIVER": "NO",
                     ]),
             ],
@@ -2936,8 +3118,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "TAPI_EXEC": tapiToolPath.str,
-
                         "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                     ]),
             ],
@@ -2984,6 +3166,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     "TAPI_EXEC": tapiToolPath.str,
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                     "GENERATE_INFOPLIST_FILE": "YES",
                 ])],
@@ -3068,6 +3251,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "PRODUCT_NAME": "ProductName",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": swiftVersion,
+                                "_LINKER_EXE": ldPath.str,
                             ]),
                         ],
                         buildPhases: [
@@ -3138,6 +3322,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "PRODUCT_NAME": "ProductName",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": swiftVersion,
+                                "_LINKER_EXE" : ldPath.str,
                                 "SWIFT_ENABLE_BARE_SLASH_REGEX": "NO",
                             ]),
                         ],
@@ -3155,6 +3340,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "PRODUCT_NAME": "ProductName",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": "5.0",
+                                "_LINKER_EXE": ldPath.str,
                                 "SWIFT_ENABLE_BARE_SLASH_REGEX": "YES",
                             ]),
                         ],
@@ -3207,6 +3393,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": "5.0",
+                                "_LINKER_EXE": ldPath.str,
                             ]),
                         ],
                         buildPhases: [
@@ -3223,6 +3410,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": "5.0",
+                                "_LINKER_EXE": ldPath.str,
                                 "SWIFT_STRICT_CONCURRENCY": "minimal",
                             ]),
                         ],
@@ -3240,6 +3428,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": "5.0",
+                                "_LINKER_EXE": ldPath.str,
                                 "SWIFT_STRICT_CONCURRENCY": "targeted",
                             ]),
                         ],
@@ -3257,6 +3446,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": "5.0",
+                                "_LINKER_EXE": ldPath.str,
                                 "SWIFT_STRICT_CONCURRENCY": "complete",
                             ]),
                         ],
@@ -3361,6 +3551,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "PRODUCT_NAME": "Tool",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": swiftVersion,
+                                "_LINKER_EXE": ldPath.str,
                             ]),
                         ],
                         buildPhases: [
@@ -3412,6 +3603,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "PRODUCT_NAME": "ProductName",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": swiftVersion,
+                                "_LINKER_EXE": ldPath.str,
                             ].addingContents(of: buildSettings)),
                         ],
                         buildPhases: [
@@ -3452,6 +3644,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "PRODUCT_NAME": "ProductName",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": swiftVersion,
+                                "_LINKER_EXE": ldPath.str,
                             ]),
                         ],
                         buildPhases: [
@@ -3503,6 +3696,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "PRODUCT_NAME": "ProductName",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": swiftVersion,
+                                "_LINKER_EXE": ldPath.str,
                             ]),
                         ],
                         buildPhases: [
@@ -3555,6 +3749,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "PRODUCT_NAME": "ProductName",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": swiftVersion,
+                                "_LINKER_EXE": ldPath.str,
                             ]),
                         ],
                         buildPhases: [
@@ -3610,6 +3805,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                     "PRODUCT_NAME": "ProductName",
                                     "SWIFT_EXEC": swiftCompilerPath.str,
                                     "SWIFT_VERSION": swiftVersion,
+                                    "_LINKER_EXE": ldPath.str,
                                 ].addingContents(of: buildSettings)),
                             ],
                             buildPhases: [
@@ -3673,6 +3869,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": swiftVersion,
+                                "_LINKER_EXE": ldPath.str,
                                 "SWIFT_OBJC_INTEROP_MODE": enableInterop ? "objcxx" : "objc",
                                 "CLANG_CXX_LANGUAGE_STANDARD": cxxLangStandard
                             ]),
@@ -3735,6 +3932,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "LIBTOOL": libtoolPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                 ]),
@@ -3791,6 +3989,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 "SWIFT_UPCOMING_FEATURE_CONCISE_MAGIC_FILE": "YES",
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
+                                "_LINKER_EXE": ldPath.str,
                                 "CODE_SIGN_IDENTITY": "",
                             ]),
                         ],
@@ -3840,6 +4039,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
+                                "_LINKER_EXE": ldPath.str,
                                 "CODE_SIGN_IDENTITY": "",
                                 "SWIFT_VERSION": swiftVersion,
                             ]),
@@ -3902,6 +4102,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                                buildSettings: [
                                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                                 "SWIFT_VERSION": swiftVersion,
+                                                "_LINKER_EXE": ldPath.str,
                                                ]),
                     ],
                     buildPhases: [
@@ -3937,6 +4138,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "SWIFT_WARNINGS_AS_WARNINGS_GROUPS": "Unsafe DeprecatedDeclaration",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
+                                "_LINKER_EXE": ldPath.str,
                                 "CODE_SIGN_IDENTITY": ""
                             ]),
                         ],
@@ -3981,6 +4183,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "SWIFT_WARNINGS_AS_ERRORS_GROUPS": "UnknownWarningGroup PreconcurrencyImport",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
+                                "_LINKER_EXE": ldPath.str,
                                 "CODE_SIGN_IDENTITY": ""
                             ]),
                         ],

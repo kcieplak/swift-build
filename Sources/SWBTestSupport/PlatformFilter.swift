@@ -33,7 +33,7 @@ extension CoreBasedTests {
 
         //try await XCTContext.runActivity(named: "Destination \(runDestination.platformFilterString) with filters \(platformFilters)") { _ in
             let swiftCompilerPath = try await self.swiftCompilerPath
-            let testProject = TestProject(
+            let testProject = try await TestProject(
                 "aProject",
                 groupTree: TestGroup(
                     "SomeFiles",
@@ -51,6 +51,7 @@ extension CoreBasedTests {
                         "SDK_VARIANT": runDestination.sdkVariant ?? "",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": "5.0",
+                        "_LINKER_EXE": ldPath.str,
                         ]),
                 ],
                 targets: [
@@ -88,7 +89,7 @@ extension CoreBasedTests {
                     ),
                 ]
             )
-            let testPackage = TestPackageProject(
+            let testPackage = try await TestPackageProject(
                 "Package",
                 groupTree: TestGroup(
                     "SomeFiles",
@@ -104,6 +105,7 @@ extension CoreBasedTests {
                         "SDK_VARIANT": runDestination.sdkVariant ?? "",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": "5.0",
+                        "_LINKER_EXE": ldPath.str,
                         ]),
                 ],
                 targets: [
@@ -127,7 +129,7 @@ extension CoreBasedTests {
             let filtersString = platformFilters.sorted().map { $0.platform + ($0.environment.nilIfEmpty.map { "-\($0)"} ?? "") }.joined(separator: ", ") // Just for test logging.
 
             try await TaskConstructionTester(core, testWorkspace).checkBuild(BuildParameters(configuration: "Debug", activeRunDestination: runDestination), userPreferences: UserPreferences.defaultForTesting.with(enableDebugActivityLogs: true)) { results in
-                results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "CreateUniversalBinary", "Gate", "GenerateDSYMFile", "Ld", "MkDir", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "RegisterWithLaunchServices", "SymLink", "Touch", "WriteAuxiliaryFile", "Validate"])
+                results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "CreateUniversalBinary", "Gate", "GenerateDSYMFile", "Ld", "MkDir", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "RegisterWithLaunchServices", "SymLink", "Touch", "WriteAuxiliaryFile", "Validate", "ProcessSDKImports"])
 
                 // We should always build this
                 results.checkTasks(.matchRuleType("CompileC"), .matchRuleItemBasename("AppSource.m")) { tasks in

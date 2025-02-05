@@ -422,6 +422,7 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
 
             "SWIFT_EXEC": swiftCompilerPath.str,
             "SWIFT_VERSION": swiftVersion,
+            "_LINKER_EXE": ldPath.str,
             "TAPI_EXEC": tapiToolPath.str,
             "LIBTOOL": libtoolPath.str,
 

@@ -29,7 +29,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
         let swiftVersion = try await self.swiftVersion
         let swiftFeatures = try await self.swiftFeatures
         try await withTemporaryDirectory { tmpDir in
-            let testProject = TestProject(
+            let testProject = try await TestProject(
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
@@ -51,6 +51,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SDKROOT": "iphoneos",
                             "SWIFT_EXEC": swiftCompilerPath.str,
+                            "_LINKER_EXE" : ldPath.str,
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
@@ -200,7 +201,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
         let swiftVersion = try await self.swiftVersion
         let swiftFeatures = try await self.swiftFeatures
         try await withTemporaryDirectory { tmpDir in
-            let testProject = TestProject(
+            let testProject = try await TestProject(
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
@@ -221,6 +222,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SDKROOT": "iphoneos",
                             "SWIFT_EXEC": swiftCompilerPath.str,
+                            "_LINKER_EXE" : ldPath.str,
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
@@ -420,6 +422,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SDKROOT": "iphoneos",
                             "SWIFT_EXEC": swiftCompilerPath.str,
+                            "_LINKER_EXE" : ldPath.str,
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
@@ -502,6 +505,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SDKROOT": "iphoneos",
                             "SWIFT_EXEC": swiftCompilerPath.str,
+                            "_LINKER_EXE" : ldPath.str,
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
@@ -592,6 +596,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SDKROOT": "iphoneos",
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE" : ldPath.str,
                             "VERSIONING_SYSTEM": "apple-generic"
                         ]),
                 ],
@@ -649,6 +654,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SDKROOT": "macosx",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE" : ldPath.str,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
                         ]),
@@ -809,6 +815,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SDKROOT": "iphoneos",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE" : ldPath.str,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
                         ]),
@@ -868,6 +875,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SDKROOT": "iphoneos",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE": ldPath.str,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar"
                         ]),
@@ -925,6 +933,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SDKROOT": "macosx",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE" : ldPath.str,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
                         ]),
@@ -980,6 +989,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SDKROOT": "iphoneos",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE" : ldPath.str,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
                         ]),
@@ -1043,6 +1053,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SDKROOT": "iphoneos",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE" : ldPath.str,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
                         ]),
@@ -1160,6 +1171,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SDKROOT": "iphoneos",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE" : ldPath.str,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
                         ]),
@@ -1221,6 +1233,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SDKROOT": "iphoneos",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE" : ldPath.str,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
                         ]),
@@ -1282,6 +1295,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SDKROOT": "iphoneos",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE" : ldPath.str,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
                         ]),
@@ -1325,7 +1339,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
         let swiftVersion = try await self.swiftVersion
         let swiftFeatures = try await self.swiftFeatures
         try await withTemporaryDirectory { tmpDir in
-            let testProject = TestProject(
+            let testProject = try await TestProject(
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
@@ -1347,6 +1361,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SDKROOT": "iphoneos",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE": ldPath.str,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
                         ]),
@@ -1480,6 +1495,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SDKROOT": "iphoneos",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE" : ldPath.str,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
                         ]),
@@ -1618,6 +1634,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SDKROOT": "iphoneos",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE" : ldPath.str,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
                         ]),
@@ -1681,6 +1698,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SDKROOT": "iphoneos",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE" : ldPath.str,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
                         ]),
@@ -1744,6 +1762,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SDKROOT": "iphoneos",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE" : ldPath.str,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
                         ]),

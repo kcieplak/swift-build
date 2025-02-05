@@ -163,6 +163,7 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "5.0",
+                    "_LINKER_EXE": ldPath.str,
                 ])
             ],
             targets: [
@@ -324,6 +325,7 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "5.0",
+                    "_LINKER_EXE": ldPath.str,
                 ])
             ],
             targets: [
@@ -718,6 +720,7 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "5.0",
+                    "_LINKER_EXE": ldPath.str,
                 ])
             ],
             targets: [
@@ -762,6 +765,7 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
         let targetParameters = [("ObjCOnly", false),
                                 ("ObjCCompatibilityHeader", true),
         ]
+
         for (targetName, hasSwiftSource) in targetParameters {
             await tester.checkBuild(targetName: targetName) { results in
                 results.checkTarget(targetName) { target in
@@ -1116,6 +1120,7 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
             "PRODUCT_NAME": "$(TARGET_NAME)",
             "SWIFT_EXEC": swiftCompilerPath.str,
             "SWIFT_VERSION": swiftVersion,
+            "_LINKER_EXE": ldPath.str,
         ].merging(extraSettings, uniquingKeysWith: { a, b in a }))
     }
 
@@ -1135,6 +1140,7 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
         planningResults.checkTasks(.matchRuleType("RegisterExecutionPolicyException")) { _ in }
         planningResults.checkTasks(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
         planningResults.checkTasks(.matchRuleType("AppIntentsSSUTraining")) { _ in }
+        planningResults.checkTasks(.matchRuleType("ProcessSDKImports")) { _ in }
 
         // Skip the remaining Concatenate, Copy, PhaseScriptExecution, Unifdef and WriteAuxiliaryFiles tasks.
         planningResults.checkTasks(.matchRuleType("Concatenate")) { _ in }

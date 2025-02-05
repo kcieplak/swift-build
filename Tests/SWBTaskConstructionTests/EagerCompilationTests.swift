@@ -52,6 +52,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                         "EAGER_COMPILATION_REQUIRE": "true", // to verify there is no warning for targets with no scripts
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "EAGER_PARALLEL_COMPILATION_DISABLE": "YES",
                         "TAPI_EXEC": tapiToolPath.str,
                     ]
@@ -931,6 +932,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                         "ALWAYS_SEARCH_USER_PATHS": "false",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": "5.1",
+                        "_LINKER_EXE": ldPath.str,
                     ])],
                 targets: [
                     TestStandardTarget("A", type: .framework, buildPhases: [
@@ -1003,6 +1005,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                         "ALWAYS_SEARCH_USER_PATHS": "false",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": "5.1",
+                        "_LINKER_EXE": ldPath.str,
                     ])],
                 targets: [
                     TestStandardTarget("A", type: .framework, buildPhases: [
@@ -1202,6 +1205,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                         "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": "5.2",
+                        "_LINKER_EXE": ldPath.str,
                         "INTENTS_CODEGEN_LANGUAGE": "Objective-C",
                         "COREML_CODEGEN_LANGUAGE": "Objective-C",
                     ])],
@@ -1367,6 +1371,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                         "ALWAYS_SEARCH_USER_PATHS": "false",
                         "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
                         "SWIFT_EXEC": swiftCompilerPath.str,
+                        "_LINKER_EXE": ldPath.str,
                         "SWIFT_VERSION": "5.2",
                     ])],
                 targets: [
@@ -1455,6 +1460,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                         "ALWAYS_SEARCH_USER_PATHS": "false",
                         "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
                         "SWIFT_EXEC": swiftCompilerPath.str,
+                        "_LINKER_EXE": ldPath.str,
                         "SWIFT_VERSION": "5.2",
                     ])],
                 targets: [
@@ -1541,6 +1547,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                         "ALWAYS_SEARCH_USER_PATHS": "false",
                         "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
                         "SWIFT_EXEC": swiftCompilerPath.str,
+                        "_LINKER_EXE": ldPath.str,
                         "SWIFT_VERSION": "5.2",
                     ])],
                 targets: [
@@ -1680,6 +1687,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                                                                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                                                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                                                                 "SWIFT_VERSION": swiftVersion,
+                                                                                "_LINKER_EXE": ldPath.str,
                                                                                 "TAPI_EXEC": tapiToolPath.str,
 
                                                                                 "SWIFT_USE_INTEGRATED_DRIVER": "YES",
@@ -1808,6 +1816,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "SWIFT_OBJC_INTERFACE_HEADER_NAME": "Header-Swift.h",
                     ])],
             targets: [
@@ -1857,6 +1866,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                                                                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                                                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                                                                 "SWIFT_VERSION": swiftVersion,
+                                                                                "_LINKER_EXE": ldPath.str,
                                                                                 "SWIFT_ENABLE_LIBRARY_EVOLUTION": "YES",
                                                                                 "TAPI_EXEC": tapiToolPath.str,
                                                                                 "SWIFT_USE_INTEGRATED_DRIVER": "YES",
@@ -1986,8 +1996,8 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                                                                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                                                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                                                                 "SWIFT_VERSION": swiftVersion,
+                                                                                "_LINKER_EXE": ldPath.str,
                                                                                 "TAPI_EXEC": tapiToolPath.str,
-
                                                                                 "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                                                                 "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
                                                                                ]),

@@ -22,7 +22,7 @@ fileprivate struct ExportLocTaskConstructionTests: CoreBasedTests {
     func getTestProject() async throws -> TestProject {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
-        let testProject = TestProject(
+        let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
@@ -39,6 +39,7 @@ fileprivate struct ExportLocTaskConstructionTests: CoreBasedTests {
                         "CURRENT_PROJECT_VERSION": "3.1",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "GENERATE_INFOPLIST_FILE": "YES",
                     ]
                 )
@@ -131,7 +132,7 @@ fileprivate struct ExportLocTaskConstructionTests: CoreBasedTests {
                 }
             }
 
-            results.consumeTasksMatchingRuleTypes(["SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders"])
+            results.consumeTasksMatchingRuleTypes(["SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders", "ProcessSDKImports"])
 
             results.checkNoTask()
             results.checkNoDiagnostics()

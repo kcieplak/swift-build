@@ -666,6 +666,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                     "GENERATE_INFOPLIST_FILE": "YES",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "CODE_SIGN_IDENTITY": "Apple Development",
                     "SUPPORTS_MACCATALYST": "YES",
                     "CLANG_USE_RESPONSE_FILE": "NO",
@@ -846,6 +847,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                     "IPHONEOS_DEPLOYMENT_TARGET": IPHONEOS_DEPLOYMENT_TARGET,
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "CODE_SIGN_IDENTITY": "",
                     "SUPPORTS_MACCATALYST": "YES",
 

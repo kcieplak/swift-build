@@ -62,6 +62,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                 "SWIFT_INSTALL_OBJC_HEADER": "NO",
                                 "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
                                 "SWIFT_VERSION": swiftVersion,
+                                "_LINKER_EXE": ldPath.str,
                                 "TAPI_EXEC": tapiToolPath.str,
                                 "LIBTOOL": libtoolPath.str,
 
@@ -545,6 +546,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                 "SWIFT_INSTALL_OBJC_HEADER": "NO",
                                 "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
                                 "SWIFT_VERSION": swiftVersion,
+                                "_LINKER_EXE": ldPath.str,
                                 "TAPI_EXEC": tapiToolPath.str,
                                 "LIBTOOL": libtoolPath.str,
 
@@ -608,6 +610,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                 "SWIFT_INSTALL_OBJC_HEADER": "NO",
                                 "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
                                 "SWIFT_VERSION": swiftVersion,
+                                "_LINKER_EXE": ldPath.str,
                                 "TAPI_EXEC": tapiToolPath.str,
                                 "LIBTOOL": libtoolPath.str,
 
@@ -1007,6 +1010,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                 "SWIFT_INSTALL_OBJC_HEADER": "NO",
                                 "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
                                 "SWIFT_VERSION": swiftVersion,
+                                "_LINKER_EXE": ldPath.str,
                                 "TAPI_EXEC": tapiToolPath.str,
                                 "LIBTOOL": libtoolPath.str,
 
@@ -1375,6 +1379,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                 "SWIFT_INSTALL_OBJC_HEADER": "NO",
                                 "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
                                 "SWIFT_VERSION": swiftVersion,
+                                "_LINKER_EXE": ldPath.str,
                                 "TAPI_EXEC": tapiToolPath.str,
                                 "LIBTOOL": libtoolPath.str,
 

@@ -29,7 +29,7 @@ fileprivate struct AppIntentsNLTrainingTests: CoreBasedTests {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
         try await withTemporaryDirectory { tmpDir in
-            let testProject = TestProject(
+            let testProject = try await TestProject(
                 "AppIntentsProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
@@ -49,6 +49,7 @@ fileprivate struct AppIntentsNLTrainingTests: CoreBasedTests {
                         "SDKROOT": "iphoneos",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "VERSIONING_SYSTEM": "apple-generic",
                         "INFOPLIST_FILE": "Sources/Info.plist",
                     ]),

@@ -208,6 +208,7 @@ fileprivate struct InstallTaskConstructionTests: CoreBasedTests {
                         "SDKROOT": "macosx",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                     ]),
             ],
             targets: [

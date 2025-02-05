@@ -53,6 +53,7 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
                             "SDKROOT": "macosx",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE": ldPath.str,
                             "CODE_SIGN_IDENTITY": "-",
                             "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
                         ]
@@ -149,6 +150,7 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE": ldPath.str,
                             "TAPI_EXEC": tapiToolPath.str,
                         ]
                     )],
@@ -867,6 +869,7 @@ fileprivate struct BuildDescriptionConstructionTests: CoreBasedTests {
                                                                 "CODE_SIGNING_ALLOWED": "NO",
                                                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                                                 "SWIFT_VERSION": "4.2",
+                                                                "_LINKER_EXE": ldPath.str,
                                                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                                                 "USE_HEADERMAP": "NO",
                                                                 "SKIP_INSTALL": "YES",

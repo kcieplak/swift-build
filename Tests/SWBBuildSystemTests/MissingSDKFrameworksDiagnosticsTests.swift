@@ -198,7 +198,7 @@ fileprivate struct MissingSDKFrameworksDiagnosticsTests: CoreBasedTests {
                                 "SDKROOT": sdk,
                                 "SUPPORTS_MACCATALYST": supportsMacCatalyst ? "YES" : "NO",
                                 "SWIFT_VERSION": swiftVersion,
-
+                                "_LINKER_EXE": ldPath.str,
                                 "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                 "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
                             ])

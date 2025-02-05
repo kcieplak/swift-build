@@ -810,6 +810,7 @@ public final class BuiltinMacros {
     public static let LIBTOOL_DEPENDENCY_INFO_FILE = BuiltinMacros.declarePathMacro("LIBTOOL_DEPENDENCY_INFO_FILE")
     public static let LINKER = BuiltinMacros.declareStringMacro("LINKER")
     public static let ALTERNATE_LINKER = BuiltinMacros.declareStringMacro("ALTERNATE_LINKER")
+    public static let _LINKER_EXE = BuiltinMacros.declarePathMacro("_LINKER_EXE")
     public static let LINK_OBJC_RUNTIME = BuiltinMacros.declareBooleanMacro("LINK_OBJC_RUNTIME")
     public static let LINK_WITH_STANDARD_LIBRARIES = BuiltinMacros.declareBooleanMacro("LINK_WITH_STANDARD_LIBRARIES")
     public static let LIPO = BuiltinMacros.declareStringMacro("LIPO")
@@ -1354,6 +1355,7 @@ public final class BuiltinMacros {
         ALL_SETTINGS,
         ALTERNATE_GROUP,
         ALTERNATE_LINKER,
+        _LINKER_EXE,
         ALTERNATE_MODE,
         ALTERNATE_OWNER,
         ALTERNATE_PERMISSIONS_FILES,

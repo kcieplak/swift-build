@@ -10,8 +10,11 @@
 //
 //===----------------------------------------------------------------------===//
 
+import Foundation
 import Testing
 
+@_spi(Testing) import SwiftBuild
+import SWBUtil
 import SWBCore
 import SWBTestSupport
 
@@ -19,8 +22,8 @@ import SWBTestSupport
 @Suite
 fileprivate struct DebugInformationTests: CoreBasedTests {
     /// Test the different DWARF version formats we support.
-    @Test(.requireSDKs(.macOS))
-    func debugInformationVersiom() async throws {
+    @Test(.requireSDKs(.host))
+    func debugInformationVersion() async throws {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
@@ -37,12 +40,13 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_EXEC": swiftCompilerPath.str,
+                        "_LINKER_EXE": ldPath.str,
                         "SWIFT_VERSION": swiftVersion,
                     ]),
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo", type: .commandLineTool,
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "CFile.c",
@@ -53,7 +57,7 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Test the default version.
-        await tester.checkBuild(BuildParameters(configuration: "Config")) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Config"), runDestination: .host) { results in
             // Check clang.
             results.checkTask(.matchRuleType("CompileC")) { task in
                 task.checkCommandLineContains(["-g"])
@@ -73,7 +77,7 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         }
 
         // Test explicitly setting to DWARF 4.
-        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_VERSION" : "dwarf4"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_VERSION" : "dwarf4"]), runDestination: .host) { results in
             // Check clang.
             results.checkTask(.matchRuleType("CompileC")) { task in
                 task.checkCommandLineContains(["-g", "-gdwarf-4"])
@@ -91,7 +95,7 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         }
 
         // Test explicitly setting to DWARF 5.
-        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_VERSION" : "dwarf5"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_VERSION" : "dwarf5"]), runDestination: .host) { results in
             // Check clang.
             results.checkTask(.matchRuleType("CompileC")) { task in
                 task.checkCommandLineContains(["-g", "-gdwarf-5"])
@@ -109,7 +113,7 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         }
 
         // Test disabling debug information.
-        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_FORMAT" : "", "DEBUG_INFORMATION_VERSION" : "dwarf5"])) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_FORMAT" : "", "DEBUG_INFORMATION_VERSION" : "dwarf5"]), runDestination: .host) { results in
             // Check clang.
             results.checkTask(.matchRuleType("CompileC")) { task in
                 task.checkCommandLineDoesNotContain("-g")
@@ -309,5 +313,4 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
             results.checkNoDiagnostics()
         }
     }
-
 }

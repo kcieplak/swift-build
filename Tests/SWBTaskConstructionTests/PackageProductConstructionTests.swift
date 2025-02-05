@@ -178,6 +178,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "CODE_SIGNING_ALLOWED": "NO",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "4.2",
+                    "_LINKER_EXE": ldPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "USE_HEADERMAP": "NO",
                     "SKIP_INSTALL": "YES",
@@ -228,6 +229,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "CODE_SIGN_IDENTITY": "",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "4.2",
+                    "_LINKER_EXE": ldPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "USE_HEADERMAP": "NO",
                     "SKIP_INSTALL": "YES",
@@ -324,6 +326,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "4.2",
+                    "_LINKER_EXE": ldPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "USE_HEADERMAP": "NO"]),
             ],
@@ -384,6 +387,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "CODE_SIGNING_ALLOWED": "NO",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "4.2",
+                    "_LINKER_EXE": ldPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "USE_HEADERMAP": "NO",
                     "SKIP_INSTALL": "YES",
@@ -414,6 +418,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "CODE_SIGN_IDENTITY": "",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "4.2",
+                    "_LINKER_EXE": ldPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "USE_HEADERMAP": "NO",
                     "SKIP_INSTALL": "YES",
@@ -463,6 +468,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "CODE_SIGNING_ALLOWED": "NO",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "4.2",
+                    "_LINKER_EXE": ldPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "USE_HEADERMAP": "NO",
                     "SKIP_INSTALL": "YES",
@@ -543,6 +549,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "ENTITLEMENTS_REQUIRED": "NO",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "4.2",
+                    "_LINKER_EXE": ldPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "USE_HEADERMAP": "NO",
                     "SKIP_INSTALL": "YES",
@@ -743,7 +750,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
     func linkageGraphHasAllLevelTargets() async throws {
         let testProject = try await TestProject(
             "aProject",
-            groupTree: TestGroup(
+            groupTree: try await TestGroup(
                 "SomeFiles",
                 children: [
                     TestFile("SwiftyJSON.swift"),
@@ -756,6 +763,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "CODE_SIGN_IDENTITY": "",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "4.2",
+                    "_LINKER_EXE": ldPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "USE_HEADERMAP": "NO",
                     "SKIP_INSTALL": "YES",
@@ -828,6 +836,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "4.2",
+                     "_LINKER_EXE": ldPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "DEFINES_MODULE": "YES",
                     "USE_HEADERMAP": "NO"]),
@@ -887,6 +896,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "4.2",
+                     "_LINKER_EXE": ldPath.str,
                     "GENERATE_INFOPLIST_FILE": "YES",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "CODE_SIGNING_ALLOWED": "NO",
@@ -936,6 +946,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "ASSETCATALOG_EXEC": "$(DEVELOPER_DIR)/usr/bin/actool",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "4.2",
+                    "_LINKER_EXE": ldPath.str,
                     "GENERATE_INFOPLIST_FILE": "YES",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "GENERATE_RESOURCE_ACCESSORS": "YES",
@@ -1117,6 +1128,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "CODE_SIGNING_ALLOWED": "NO",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "4.2",
+                    "_LINKER_EXE": ldPath.str,
                     "GENERATE_INFOPLIST_FILE": "YES",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "USE_HEADERMAP": "NO",
@@ -1205,6 +1217,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     "CODE_SIGNING_ALLOWED": "NO",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "4.2",
+                    "_LINKER_EXE": ldPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "USE_HEADERMAP": "NO",
                     "SKIP_INSTALL": "YES",

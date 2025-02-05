@@ -41,6 +41,7 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SWIFT_VERSION": swiftVersion,
                             "SWIFT_EXEC": swiftCompilerPath.str,
+                            "_LINKER_EXE": ldPath.str,
                             "IGNORE_BUILD_PHASES": "YES",
                         ]),
                 ],

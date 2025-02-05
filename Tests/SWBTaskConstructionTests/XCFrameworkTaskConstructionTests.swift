@@ -355,7 +355,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
     func basicXCFrameworkUsageWithSwift() async throws {
         let core = try await getCore()
         let swiftCompilerPath = try await self.swiftCompilerPath
-        let testProject = TestProject(
+        let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
@@ -372,6 +372,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "INFOPLIST_FILE": "Info.plist",
                     "SWIFT_VERSION": "5",
                     "SWIFT_EXEC": swiftCompilerPath.str,
+                    "_LINKER_EXE": ldPath.str,
                 ]),
             ],
             targets: [
@@ -405,6 +406,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(supportXCFrameworkPath, recursive: true)
         let infoLookup = try await getCore()
         try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: fs, path: supportXCFrameworkPath, infoLookup: infoLookup)
+        let checkSDKImports = try await supportsSDKImports
 
         try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), fs: fs) { results in
             var processSupportXCFrameworkTask: (any PlannedTask)?
@@ -448,7 +450,37 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
 
-                    task.checkCommandLine(["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App.swiftmodule", "-framework", "Support", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/MacOS/App"])
+                    task.checkCommandLine(
+                        [
+                            "clang", 
+                            "-Xlinker", "-reproducible", 
+                            "-target", "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", 
+                            "-isysroot", core.loadSDK(.macOS).path.str, 
+                            "-Os", 
+                            "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", 
+                            "-L\(SRCROOT)/build/Debug", 
+                            "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", 
+                            "-F\(SRCROOT)/build/Debug", 
+                            "-filelist", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App.LinkFileList", 
+                            "-Xlinker", "-object_path_lto", 
+                            "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_lto.o", 
+                            "-Xlinker", "-dependency_info", 
+                            "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_dependency_info.dat", 
+                            "-fobjc-link-runtime", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", 
+                            "-L/usr/lib/swift", 
+                            "-Xlinker", "-add_ast_path", 
+                            "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App.swiftmodule", 
+                            "-framework", "Support", 
+                            "-Xlinker", "-no_adhoc_codesign"
+                        ] +  (checkSDKImports ? [
+                            "-Xlinker", "-sdk_imports",
+                            "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/App.build/Objects-normal/x86_64/App_normal_x86_64_sdk_imports.json",
+                            "-Xlinker", "-sdk_imports_each_object"
+                        ] : []) + 
+                        [ 
+                            "-o", "\(SRCROOT)/build/Debug/App.app/Contents/MacOS/App"
+                        ]
+                    )
                 }
             }
         }
@@ -779,6 +811,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "HEADER_SEARCH_PATHS": "hp1 hp2",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "5.0",
+                    "_LINKER_EXE": ldPath.str,
                 ]),
             ],
             targets: [

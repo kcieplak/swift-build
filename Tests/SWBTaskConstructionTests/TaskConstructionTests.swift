@@ -1602,6 +1602,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         // Test the basics of task construction for a command line tool which uses a static library.
         let runDestination: RunDestinationInfo = .host
         let libtoolPath = try await runDestination == .windows ? self.llvmlibPath : self.libtoolPath
+        let ldPath = try await self.ldPath
         let versioningSupported: Bool = runDestination == .windows ? false : true
 
         let testProject = TestProject(
@@ -2683,6 +2684,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     "CODE_SIGN_IDENTITY": "-",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "TAPI_EXEC": tapiToolPath.str,
                 ]),
             ],
@@ -2913,6 +2915,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     "CODE_SIGN_IDENTITY": "-",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "TAPI_EXEC": tapiToolPath.str,
                     "MIG_EXEC": migPath.str,
                     "DEFINES_MODULE": "YES",
@@ -3527,6 +3530,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                                 "CLANG_ENABLE_MODULES": "YES",
                                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                                 "SWIFT_VERSION": swiftVersion,
+                                                "_LINKER_EXE": ldPath.str,
                                                 "TAPI_EXEC": tapiToolPath.str,
                                                 "CC": clangCompilerPath.str,
                                                 "CLANG_EXPLICIT_MODULES_LIBCLANG_PATH": libClangPath.str,
@@ -3559,6 +3563,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                                 "DEFINES_MODULE": "YES",
                                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                                 "SWIFT_VERSION": swiftVersion,
+                                                "_LINKER_EXE": ldPath.str,
                                                 "TAPI_EXEC": tapiToolPath.str,
                                                 "CC": clangCompilerPath.str,
                                                 "CLANG_EXPLICIT_MODULES_LIBCLANG_PATH": libClangPath.str,
@@ -3744,6 +3749,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "ARCHS": "x86_64",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE": ldPath.str,
                             "TAPI_EXEC": tapiToolPath.str,
                             // Indexing while building is only enabled for debug builds.
                             "GCC_OPTIMIZATION_LEVEL": "0",
@@ -3816,6 +3822,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "ARCHS": "x86_64",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE": ldPath.str,
                             "TAPI_EXEC": tapiToolPath.str,
                             // Indexing while building is disabled for optimized builds, even in debug
                             "GCC_OPTIMIZATION_LEVEL": "s",
@@ -3956,6 +3963,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
                                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                                 "SWIFT_VERSION": swiftVersion,
+                                                "_LINKER_EXE": ldPath.str,
                                                 "TAPI_EXEC": tapiToolPath.str,
                                                 "CLANG_USE_RESPONSE_FILE": "NO",
                                                ]),
@@ -4596,6 +4604,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "GENERATE_INFOPLIST_FILE": "YES",
                     ]
                 ),
@@ -5265,6 +5274,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE": ldPath.str,
                             "TAPI_EXEC": tapiToolPath.str,
                         ]),
                     ],
@@ -5298,6 +5308,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE": ldPath.str,
                             "TAPI_EXEC": tapiToolPath.str,
                         ]),
                     ],
@@ -5357,6 +5368,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     "CODE_SIGN_IDENTITY": "-",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "TAPI_EXEC": tapiToolPath.str,
                 ]),
             ],
@@ -5845,6 +5857,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         "DEFINES_MODULE": "YES",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                     ]),
             ],
             targets: [
@@ -5940,7 +5953,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 var buildSettings = try await [
                     "CODE_SIGN_IDENTITY": "",
                     "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "5"
+                    "SWIFT_VERSION": "5",
+                    "_LINKER_EXE": ldPath.str,
                 ]
                 if let installHeaderSetting {
                     buildSettings["SWIFT_INSTALL_OBJC_HEADER"] = installHeaderSetting
@@ -6269,6 +6283,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "TAPI_EXEC": tapiToolPath.str,
                         "GCC_PREFIX_HEADER": "header.pch",
                         "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
@@ -6510,6 +6525,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "TAPI_EXEC": tapiToolPath.str,
                         "SWIFT_OBJC_INTERFACE_HEADER_NAME": "Header-Swift.h",
                         "RUN_CLANG_STATIC_ANALYZER": "YES",
@@ -6582,6 +6598,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                                     "DEFINES_MODULE": "YES",
                                                     "SWIFT_EXEC": swiftCompilerPath.str,
                                                     "SWIFT_VERSION": swiftVersion,
+                                                    "_LINKER_EXE": ldPath.str,
                                                     "TAPI_EXEC": tapiToolPath.str,
                                                     "ARCHS": archsBuildSetting,
                                                     "INFOPLIST_FILE": "Sources/Info.plist"
@@ -6636,6 +6653,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                                 "DEFINES_MODULE": "YES",
                                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                                 "SWIFT_VERSION": swiftVersion,
+                                                "_LINKER_EXE": ldPath.str,
                                                 "TAPI_EXEC": tapiToolPath.str,
                                                 "ARCHS": "arm64_32",
                                                 "INFOPLIST_FILE": "Sources/Info.plist"
@@ -7120,6 +7138,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "TAPI_EXEC": tapiToolPath.str,
                 ]),
             ],
@@ -7958,6 +7977,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "ProductName",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
+                            "_LINKER_EXE": ldPath.str,
                         ]),
                     ],
                     buildPhases: [
@@ -8562,6 +8582,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": swiftVersion,
+                                "_LINKER_EXE": ldPath.str,
                                 "SUPPRESS_WARNINGS": "YES"
                             ]),
                         ],

@@ -659,7 +659,8 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
                     "GENERATE_INFOPLIST_FILE": "YES",
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion
+                    "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                 ]),
             ],
             targets: [

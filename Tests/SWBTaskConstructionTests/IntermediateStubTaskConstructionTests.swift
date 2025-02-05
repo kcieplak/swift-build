@@ -36,6 +36,7 @@ fileprivate struct IntermediateStubTaskConstructionTests: CoreBasedTests {
                     "SDKROOT": "macosx",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "TAPI_EXEC": tapiToolPath.str,
                 ])],
             targets: [
@@ -76,6 +77,7 @@ fileprivate struct IntermediateStubTaskConstructionTests: CoreBasedTests {
                     "SDKROOT": "macosx",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "TAPI_EXEC": tapiToolPath.str,
                     "SUPPORTS_TEXT_BASED_API": "YES",
                 ])],
@@ -110,6 +112,7 @@ fileprivate struct IntermediateStubTaskConstructionTests: CoreBasedTests {
                     "SDKROOT": "macosx",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "TAPI_EXEC": tapiToolPath.str,
                     "LIBTOOL": libtoolPath.str,
                 ])],
@@ -143,6 +146,7 @@ fileprivate struct IntermediateStubTaskConstructionTests: CoreBasedTests {
                     "SDKROOT": "iphoneos",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "TAPI_EXEC": tapiToolPath.str,
                     "ENABLE_BITCODE": "YES",
                     "BITCODE_GENERATION_MODE": "bitcode"
@@ -178,6 +182,7 @@ fileprivate struct IntermediateStubTaskConstructionTests: CoreBasedTests {
                     "SDKROOT": "macosx",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "TAPI_EXEC": tapiToolPath.str,
                     "GENERATE_TEXT_BASED_STUBS": "YES",
                 ])],
@@ -212,6 +217,7 @@ fileprivate struct IntermediateStubTaskConstructionTests: CoreBasedTests {
                     "SDKROOT": "macosx",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "TAPI_EXEC": tapiToolPath.str,
                 ])],
             targets: [

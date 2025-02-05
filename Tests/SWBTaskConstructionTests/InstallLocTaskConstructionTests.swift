@@ -1618,6 +1618,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                         "SDKROOT": "macosx",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": "5.0",
+                        "_LINKER_EXE": ldPath.str,
                     ]),
             ],
             targets: [
@@ -1709,6 +1710,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                     "CODE_SIGNING_ALLOWED": "NO",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": "4.2",
+                    "_LINKER_EXE": ldPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "USE_HEADERMAP": "NO",
                     "SKIP_INSTALL": "YES",

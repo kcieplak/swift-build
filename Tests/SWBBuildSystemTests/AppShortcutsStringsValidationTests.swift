@@ -28,7 +28,7 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
         let swiftVersion = try await self.swiftVersion
 
         try await withTemporaryDirectory { tmpDir in
-            let testProject = TestProject(
+            let testProject = try await TestProject(
                 "AppShortcutsProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
@@ -43,6 +43,7 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
                         "USE_HEADERMAP": "NO",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                     ]),
                 ],
                 targets: [
@@ -107,7 +108,7 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
             let swiftCompilerPath = try await self.swiftCompilerPath
             let swiftVersion = try await self.swiftVersion
 
-            let testProject = TestProject(
+            let testProject = try await TestProject(
                 "AppShortcutsProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
@@ -122,6 +123,7 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
                         "USE_HEADERMAP": "NO",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                     ]),
                 ],
                 targets: [

@@ -84,6 +84,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
                         "EAGER_LINKING_REQUIRE": "YES",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "TAPI_EXEC": tapiToolPath.str,
                     ]
                 )],
@@ -311,6 +312,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "TAPI_EXEC": tapiToolPath.str,
                     "LIBTOOL": libtoolPath.str,
                     "DOCC_EXEC": doccToolPath.str,
@@ -568,6 +570,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
                     "EAGER_LINKING_REQUIRE": "YES",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                     "TAPI_EXEC": tapiToolPath.str
                 ]
             )],

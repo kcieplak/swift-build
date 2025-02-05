@@ -2967,7 +2967,16 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
                 let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR)
                 let moduleFilePath = moduleFileDir.join(moduleName + ".swiftmodule")
-                args += [["-Xlinker", "-add_ast_path", "-Xlinker", moduleFilePath.str]]
+             
+                guard let ldToolSpecInfo = await producer.ldLinkerSpec.discoveredCommandLineToolSpecInfo(producer, scope, delegate) as? DiscoveredLdLinkerToolSpecInfo else {
+                    delegate.error("Could not discover linker spec.")
+                    // An error message would have already been emitted by this point
+                    return (args: [[]], inputPaths: [])
+                }
+                if ldToolSpecInfo.linker == .ld64 {
+                    // 'add_ast_path' is only supported by ld64
+                    args += [["-Xlinker", "-add_ast_path", "-Xlinker", moduleFilePath.str]]
+                }
                 if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS) {
                     args += [["@\(Path(moduleFilePath.appendingFileNameSuffix("-linker-args").withoutSuffix + ".resp").str)"]]
                 }

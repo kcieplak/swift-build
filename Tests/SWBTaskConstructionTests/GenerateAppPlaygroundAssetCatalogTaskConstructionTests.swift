@@ -38,6 +38,7 @@ fileprivate struct GenerateAppPlaygroundAssetCatalogTaskConstructionTests: CoreB
                     "SUPPORTED_PLATFORMS": "macosx",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                 ])
             ],
             targets: [
@@ -80,6 +81,7 @@ fileprivate struct GenerateAppPlaygroundAssetCatalogTaskConstructionTests: CoreB
                     "SUPPORTED_PLATFORMS": "macosx",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                 ])
             ],
             targets: [
@@ -127,6 +129,7 @@ fileprivate struct GenerateAppPlaygroundAssetCatalogTaskConstructionTests: CoreB
                     "SUPPORTED_PLATFORMS": "macosx",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                 ])
             ],
             targets: [
@@ -186,6 +189,7 @@ fileprivate struct GenerateAppPlaygroundAssetCatalogTaskConstructionTests: CoreB
                     "SUPPORTED_PLATFORMS": "macosx",
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
+                    "_LINKER_EXE": ldPath.str,
                 ])
             ],
             targets: [

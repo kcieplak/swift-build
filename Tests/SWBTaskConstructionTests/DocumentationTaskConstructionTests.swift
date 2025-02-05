@@ -889,6 +889,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                                 "SWIFT_VERSION": "5.2",
                                 // Let the test project use the actual swift compiler, this is needed to detect the use of features in features.json
                                 "SWIFT_EXEC": swiftCompilerPath.str,
+                                "_LINKER_EXE": ldPath.str,
                                 // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
                                 "TAPI_EXEC": tapiToolPath.str,
                                 "LIBTOOL": libtoolPath.str,

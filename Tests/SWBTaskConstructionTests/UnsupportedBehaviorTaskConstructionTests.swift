@@ -48,6 +48,7 @@ fileprivate struct UnsupportedBehaviorTaskConstructionTests: CoreBasedTests {
                         "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
                         "SDKROOT": "iphoneos",
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         // Settings to redirect TARGET_BUILD_DIR.
                         "REDIRECT_CONFIG_BUILD_DIR": "$(SRCROOT)/_build",
                         "REDIRECT_OUT_DIR": "$(SRCROOT)/_build",

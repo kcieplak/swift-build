@@ -49,6 +49,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "macosx",
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "TAPI_EXEC": tapiToolPath.str,
                     ]),
             ],
@@ -108,6 +109,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         try await fs.writePlist(baselineDir.join("Info.plist"), .plDict([:]))
         try await fs.writePlist(baselineDir.join("Some-Test-Data.plist"), .plDict([:]))
 
+        let checkSDKImports = try await supportsSDKImports
         await tester.checkBuild(fs: fs) { results in
             // For debugging convenience, consume all the Gate and build directory tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
@@ -225,7 +227,44 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/x86_64/UnitTestTarget.LinkFileList"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                     task.checkRuleInfo(["Ld", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest/Contents/MacOS/UnitTestTarget", "normal"])
-                    task.checkCommandLineMatches(["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-bundle", "-isysroot", .equal(core.loadSDK(.macOS).path.str), "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-L\(core.developerPath.str)/Platforms/MacOSX.platform/Developer/usr/lib", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-iframework", "\(core.developerPath.str)/Platforms/MacOSX.platform/Developer/Library/Frameworks", .anySequence, "-filelist", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/x86_64/UnitTestTarget.LinkFileList", "-Xlinker", "-rpath", "-Xlinker", "@loader_path/../Frameworks", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/x86_64/UnitTestTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/x86_64/UnitTestTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/x86_64/UnitTestTarget.swiftmodule", "-framework", "XCTest", "-lXCTestSwiftSupport", "-framework", "FrameworkTarget", "-o", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest/Contents/MacOS/UnitTestTarget"])
+                    task.checkCommandLineMatches(
+                        [
+                            "clang",
+                            "-Xlinker", "-reproducible",
+                            "-target", "x86_64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)",
+                            "-bundle", "-isysroot", .equal(core.loadSDK(.macOS).path.str),
+                            "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug",
+                            "-L\(SRCROOT)/build/Debug",
+                            "-L\(core.developerPath.str)/Platforms/MacOSX.platform/Developer/usr/lib",
+                            "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug",
+                            "-F\(SRCROOT)/build/Debug",
+                            "-iframework", "\(core.developerPath.str)/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+                            .anySequence,
+                            "-filelist", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/x86_64/UnitTestTarget.LinkFileList",
+                            "-Xlinker", "-rpath",
+                            "-Xlinker", "@loader_path/../Frameworks",
+                            "-Xlinker", "-object_path_lto",
+                            "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/x86_64/UnitTestTarget_lto.o",
+                            "-Xlinker", "-dependency_info",
+                            "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/x86_64/UnitTestTarget_dependency_info.dat",
+                            "-fobjc-link-runtime",
+                            "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx",
+                            "-L/usr/lib/swift",
+                            "-Xlinker", "-add_ast_path",
+                            "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/x86_64/UnitTestTarget.swiftmodule",
+                            "-framework", "XCTest",
+                            "-lXCTestSwiftSupport",
+                            "-framework", "FrameworkTarget"
+                        ] + ( checkSDKImports ? [
+                                "-Xlinker", "-sdk_imports",
+                                "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/x86_64/UnitTestTarget_normal_x86_64_sdk_imports.json",
+                                "-Xlinker", "-sdk_imports_each_object"
+                                ] : []
+                            ) +
+                        [
+                            "-o", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest/Contents/MacOS/UnitTestTarget"
+                        ]
+                    )
 
                     // We used to pass the deployment target to the linker in the environment, but this is supposedly no longer necessary.
                     task.checkEnvironment([:], exact: true)
@@ -287,6 +326,10 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 // There should be a 'Touch' task.
                 results.checkTask(.matchTarget(target), .matchRule(["Touch", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest"])) { _ in }
 
+                if checkSDKImports {
+                    results.checkTask(.matchTarget(target), .matchRuleType("ProcessSDKImports")) { _ in }
+                }
+
                 // Check there are no more tasks for this target.
                 results.checkNoTask(.matchTarget(target))
             }
@@ -335,6 +378,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "SDKROOT": "macosx",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "TAPI_EXEC": tapiToolPath.str,
                     ]),
             ],
@@ -418,6 +462,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
 
         // Check a debug build.
+        let checkSDKImports = try await supportsSDKImports
         try await tester.checkBuild(fs: fs) { results in
             // For debugging convenience, consume all the Gate and build directory related tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
@@ -515,7 +560,48 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/x86_64/UnitTestTargetOne.LinkFileList"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                     task.checkRuleInfo(["Ld", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/MacOS/UnitTestTargetOne", "normal"])
-                    task.checkCommandLineMatches(["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-bundle", "-isysroot", .equal(core.loadSDK(.macOS).path.str), "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-L\(core.developerPath.str)/Platforms/MacOSX.platform/Developer/usr/lib", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-iframework", "\(core.developerPath.str)/Platforms/MacOSX.platform/Developer/Library/Frameworks", .anySequence, "-filelist", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/x86_64/UnitTestTargetOne.LinkFileList", "-Xlinker", "-rpath", "-Xlinker", "@loader_path/../Frameworks", "-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks", "-bundle_loader", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/x86_64/UnitTestTargetOne_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/x86_64/UnitTestTargetOne_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/x86_64/UnitTestTargetOne.swiftmodule", "-framework", "XCTest", "-lXCTestSwiftSupport", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/MacOS/UnitTestTargetOne"])
+                    task.checkCommandLineMatches(
+                        [
+                            "clang",
+                            "-Xlinker", "-reproducible",
+                            "-target", "x86_64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)",
+                            "-bundle", "-isysroot", .equal(core.loadSDK(.macOS).path.str),
+                            "-Os",
+                            "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug",
+                            "-L\(SRCROOT)/build/Debug",
+                            "-L\(core.developerPath.str)/Platforms/MacOSX.platform/Developer/usr/lib",
+                            "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug",
+                            "-F\(SRCROOT)/build/Debug",
+                            "-iframework", "\(core.developerPath.str)/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+                            .anySequence,
+                            "-filelist", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/x86_64/UnitTestTargetOne.LinkFileList",
+                            "-Xlinker", "-rpath",
+                            "-Xlinker", "@loader_path/../Frameworks",
+                            "-Xlinker", "-rpath",
+                            "-Xlinker", "@executable_path/../Frameworks",
+                            "-bundle_loader", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget",
+                            "-Xlinker", "-object_path_lto",
+                            "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/x86_64/UnitTestTargetOne_lto.o",
+                            "-Xlinker", "-dependency_info",
+                            "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/x86_64/UnitTestTargetOne_dependency_info.dat",
+                            "-fobjc-link-runtime",
+                            "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx",
+                            "-L/usr/lib/swift",
+                            "-Xlinker", "-add_ast_path",
+                            "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/x86_64/UnitTestTargetOne.swiftmodule",
+                            "-framework", "XCTest",
+                            "-lXCTestSwiftSupport",
+                            "-Xlinker", "-no_adhoc_codesign"
+                        ]  + ( checkSDKImports ? [
+                                "-Xlinker", "-sdk_imports",
+                                "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/x86_64/UnitTestTargetOne_normal_x86_64_sdk_imports.json",
+                                "-Xlinker", "-sdk_imports_each_object"
+                                ] : []
+                            ) +
+                        [
+                            "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/MacOS/UnitTestTargetOne"
+                        ]
+                    )
 
                     // We used to pass the deployment target to the linker in the environment, but this is supposedly no longer necessary.
                     task.checkEnvironment([:], exact: true)
@@ -634,6 +720,11 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     #expect(lines == [""])
                 }
 
+                if checkSDKImports {
+                    results.checkTask(.matchTarget(target), .matchRuleType("MkDir")) { _ in }
+                    results.checkTask(.matchTarget(target), .matchRuleType("ProcessSDKImports")) { _ in }
+                }
+
                 // Check there are no more tasks for this target.
                 results.checkNoTask(.matchTarget(target))
             }
@@ -665,6 +756,10 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 // There should be a task to sign the test bundle.
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UnitTestTargetTwo.xctest")) { task in
                     testTargetSigningTasks.append(task)
+                }
+
+                if checkSDKImports {
+                    results.checkTask(.matchTarget(target), .matchRuleType("ProcessSDKImports")) { _ in }
                 }
 
                 // Check there are no more tasks for this target.
@@ -802,6 +897,11 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     ])
                 }
 
+                if checkSDKImports {
+                    results.checkTask(.matchTarget(target), .matchRuleType("ProcessSDKImports")) { _ in }
+                     results.checkTask(.matchTarget(target), .matchRuleType("MkDir")) { _ in }
+                }
+
                 // Check there are no more tasks for this target.
                 results.checkNoTask(.matchTarget(target))
             }
@@ -828,6 +928,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("Strip")) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["SymLink", "\(SRCROOT)/build/Debug/UnitTestTargetTwo.xctest", "../UninstalledProducts/macosx/UnitTestTargetTwo.xctest"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("Touch")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("ProcessSDKImports")) { _ in }
 
                 // Check there are no more tasks for this target.
                 results.checkNoTask(.matchTarget(target))
@@ -841,6 +942,10 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     let frameworkName = frameworkPath.basename
                     results.checkNoTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(frameworkName))
                     results.checkNoTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("\(frameworkName)"))
+                }
+
+                if checkSDKImports {
+                    results.checkTask(.matchTarget(target), .matchRuleType("ProcessSDKImports")) { _ in }
                 }
 
                 results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
@@ -887,6 +992,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
                         "SDKROOT": "watchos",
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                     ]),
             ],
             targets: [
@@ -941,6 +1047,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
             try fs.createDirectory(watchsimframeworkPath.dirname, recursive: true)
             try fs.write(watchsimframeworkPath, contents: ByteString(encodingAsUTF8: watchosframeworkPath.basename))
         }
+        let checkSDKImports = try await supportsSDKImports
 
         // Check a debug build for the device.
         await tester.checkBuild(runDestination: .watchOS, fs: fs) { results in
@@ -1053,6 +1160,10 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 // There should be tasks to generate a dSYM file for the test target and touch it - the watchOS platform enables dSYM generation by default.
                 results.checkTask(.matchTarget(target), .matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("\(targetName).xctest.dSYM")) { _ in }
 
+                if checkSDKImports {
+                    results.checkTask(.matchTarget(target), .matchRuleType("ProcessSDKImports")) { _ in }
+                }
+
                 // Check there are no more tasks for this target.
                 results.checkNoTask(.matchTarget(target))
             }
@@ -1101,6 +1212,10 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
 
                 // There should be tasks to generate a dSYM file for the test target and touch it - the watch simulator platform enables dSYM generation by default.
                 results.checkTask(.matchTarget(target), .matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("\(targetName).xctest.dSYM")) { _ in }
+
+                if checkSDKImports {
+                    results.checkTask(.matchTarget(target), .matchRuleType("ProcessSDKImports")) { _ in }
+                }
 
                 // Check there are no more tasks for this target.
                 results.checkNoTask(.matchTarget(target))
@@ -1163,6 +1278,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
                         "SDKROOT": "watchos",
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                     ]),
             ],
             targets: [
@@ -1553,7 +1669,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "SDKROOT": "iphoneos",
                         "SUPPORTS_MACCATALYST": "YES",
                         "SWIFT_VERSION": swiftVersion,
-                        "INFOPLIST_FILE": "$(TARGET_NAME)-Info.plist"
+                        "INFOPLIST_FILE": "$(TARGET_NAME)-Info.plist",
+                        "_LINKER_EXE": ldPath.str,
                     ]),
             ],
             targets: [
@@ -1669,6 +1786,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "SDKROOT": "macosx",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "TAPI_EXEC": tapiToolPath.str,
                         "DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING": "YES",
                     ]),
@@ -1910,6 +2028,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "SDKROOT": "macosx",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                         "TAPI_EXEC": tapiToolPath.str,
                         "DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING": "YES",
                     ]),
@@ -2107,7 +2226,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
     func uITestTarget_macOS() async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
-        let testProject = TestProject(
+        let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
@@ -2130,6 +2249,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "macosx",
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                     ]),
             ],
             targets: [
@@ -2194,6 +2314,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         let xctrunnerPath = core.developerPath.join("Platforms/MacOSX.platform/Developer/Library/Xcode/Agents/XCTRunner.app")
         try await fs.writeXCTRunnerApp(xctrunnerPath, archs: ["arm64", "arm64e", "x86_64"], platform: .macOS, infoLookup: core)
 
+        let checkSDKImports = try await supportsSDKImports
         // Check a debug build.
         await tester.checkBuild(fs: fs) { results in
             // For debugging convenience, consume all the Gate tasks.
@@ -2306,7 +2427,46 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/x86_64/UITestTarget.LinkFileList"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                     task.checkRuleInfo(["Ld", "\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest/Contents/MacOS/UITestTarget", "normal"])
-                    task.checkCommandLineMatches(["clang", "-Xlinker", "-reproducible", "-target", "x86_64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-bundle", "-isysroot", .equal(core.loadSDK(.macOS).path.str), "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-L\(core.developerPath.str)/Platforms/MacOSX.platform/Developer/usr/lib", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-iframework", "\(core.developerPath.str)/Platforms/MacOSX.platform/Developer/Library/Frameworks", .anySequence, "-filelist", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/x86_64/UITestTarget.LinkFileList", "-Xlinker", "-rpath", "-Xlinker", "@loader_path/../Frameworks", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/x86_64/UITestTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/x86_64/UITestTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-Xlinker", "-add_ast_path", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/x86_64/UITestTarget.swiftmodule", "-framework", "XCTest", "-lXCTestSwiftSupport", "-Xlinker", "-no_adhoc_codesign", "-o", "\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest/Contents/MacOS/UITestTarget"])
+                    task.checkCommandLineMatches(
+                        [
+                            "clang",
+                            "-Xlinker", "-reproducible",
+                            "-target", "x86_64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)",
+                            "-bundle",
+                            "-isysroot", .equal(core.loadSDK(.macOS).path.str),
+                            "-Os",
+                            "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug",
+                            "-L\(SRCROOT)/build/Debug",
+                            "-L\(core.developerPath.str)/Platforms/MacOSX.platform/Developer/usr/lib",
+                            "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug",
+                            "-F\(SRCROOT)/build/Debug",
+                            "-iframework", "\(core.developerPath.str)/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+                            .anySequence,
+                            "-filelist", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/x86_64/UITestTarget.LinkFileList",
+                            "-Xlinker", "-rpath",
+                            "-Xlinker", "@loader_path/../Frameworks",
+                            "-Xlinker", "-object_path_lto",
+                            "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/x86_64/UITestTarget_lto.o",
+                            "-Xlinker", "-dependency_info",
+                            "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/x86_64/UITestTarget_dependency_info.dat",
+                            "-fobjc-link-runtime",
+                            "-L\(core.developerPath.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx",
+                            "-L/usr/lib/swift",
+                            "-Xlinker", "-add_ast_path",
+                            "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/x86_64/UITestTarget.swiftmodule",
+                            "-framework", "XCTest",
+                            "-lXCTestSwiftSupport",
+                            "-Xlinker", "-no_adhoc_codesign",
+                        ] + ( checkSDKImports ? [
+                                "-Xlinker", "-sdk_imports",
+                                "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/x86_64/UITestTarget_normal_x86_64_sdk_imports.json",
+                                "-Xlinker", "-sdk_imports_each_object"
+                                ] : []
+                            ) +
+                        [
+                            "-o", "\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest/Contents/MacOS/UITestTarget"
+                        ]
+                    )
 
                     // We used to pass the deployment target to the linker in the environment, but this is supposedly no longer necessary.
                     task.checkEnvironment([:], exact: true)
@@ -2516,6 +2676,13 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 // There should be a 'Touch' task.
                 results.checkTask(.matchTarget(target), .matchRule(["Touch", "\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"])) { _ in }
 
+
+                if checkSDKImports {
+                    results.checkTask(.matchTarget(target), .matchRuleType("ProcessSDKImports")) { _ in }
+                    results.checkTask(.matchTarget(target), .matchRuleType("MkDir")) { _ in }
+                }
+
+
                 // Check there are no more tasks for this target.
                 results.checkNoTask(.matchTarget(target))
             }
@@ -2686,8 +2853,9 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         results.checkTaskFollows(task, antecedent: nestedSigningTask)
                     }
                 }
-
-
+                if checkSDKImports {
+                    results.checkTask(.matchTarget(target), .matchRuleType("ProcessSDKImports")) { _ in }
+                }
                 // Check there are no more tasks for this target.
                 results.checkNoTask(.matchTarget(target))
             }
@@ -2729,6 +2897,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "iphoneos",
                         "SWIFT_VERSION": swiftVersion,
+                        "_LINKER_EXE": ldPath.str,
                     ]),
             ],
             targets: [
@@ -2802,6 +2971,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
 
         let simXctrunnerPath = core.developerPath.join("Platforms/iPhoneSimulator.platform/Developer/Library/Xcode/Agents/XCTRunner.app")
         try await fs.writeXCTRunnerApp(simXctrunnerPath, archs: ["x86_64"], platform: .iOSSimulator, infoLookup: core)
+
+        let checkSDKImports = try await supportsSDKImports
 
         // Check a debug build for the device.
         await tester.checkBuild(fs: fs) { results in
@@ -2880,6 +3051,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget.swiftmodule/arm64-apple-ios.swiftdoc", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/UITestTarget.build/Objects-normal/arm64/UITestTarget.swiftdoc"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("CopySwiftLibs")) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["Touch", "\(SRCROOT)/build/Debug-iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("ProcessSDKImports")) { _ in }
 
                 // Check there are no more tasks for this target.
                 results.checkNoTask(.matchTarget(target))
@@ -2975,6 +3147,9 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("SetMode")) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["Touch", "\(SRCROOT)/build/UninstalledProducts/iphoneos/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest"])) { _ in }
 
+                if checkSDKImports {
+                    results.checkTask(.matchTarget(target), .matchRuleType("ProcessSDKImports")) { _ in }
+                }
                 // Check there are no more tasks for this target.
                 results.checkNoTask(.matchTarget(target))
             }
@@ -3060,6 +3235,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug-iphonesimulator/UITestTarget.swiftmodule/x86_64-apple-ios-simulator.swiftdoc", "\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/UITestTarget.build/Objects-normal/x86_64/UITestTarget.swiftdoc"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("CopySwiftLibs")) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["Touch", "\(SRCROOT)/build/Debug-iphonesimulator/UITestTarget-Runner.app/PlugIns/UITestTarget.xctest"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRuleType("ProcessSDKImports")) { _ in }
 
                 // Check there are no more tasks for this target.
                 results.checkNoTask(.matchTarget(target))
