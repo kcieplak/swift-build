@@ -2864,6 +2864,12 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         // Compute the executable path.
         let swiftc = swiftToolSpec.toolPath
 
+        guard let ldToolSpecInfo = await producer.ldLinkerSpec.discoveredCommandLineToolSpecInfo(producer, scope, delegate) as? DiscoveredLdLinkerToolSpecInfo else {
+            // An error message would have already been emitted by this point
+            return (args: [[]], inputPaths: [])
+        }
+        let linker = ldToolSpecInfo.linker
+
         var args:  [[String]] = []
         var inputPaths: [Path] = []
         if !forTAPI {

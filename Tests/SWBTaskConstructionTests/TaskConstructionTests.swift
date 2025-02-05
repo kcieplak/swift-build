@@ -1602,6 +1602,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         // Test the basics of task construction for a command line tool which uses a static library.
         let runDestination: RunDestinationInfo = .host
         let libtoolPath = try await runDestination == .windows ? self.llvmlibPath : self.libtoolPath
+        let ldPath = try await self.ldPath
         let versioningSupported: Bool = runDestination == .windows ? false : true
 
         let testProject = TestProject(
@@ -1619,11 +1620,13 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 TestBuildConfiguration("Debug", buildSettings: [
                     "CODE_SIGNING_ALLOWED": "NO",
                     "LIBTOOL": libtoolPath.str,
+                    "ALTERNATE_LINKER": ldPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "GCC_PREFIX_HEADER": "Prefix.pch",
                     "CLANG_USE_RESPONSE_FILE": "NO",]),
                 TestBuildConfiguration("Release", buildSettings: [
                     "LIBTOOL": libtoolPath.str,
+                    "ALTERNATE_LINKER": ldPath.str,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                     "CODE_SIGN_IDENTITY": "-",
                     "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",

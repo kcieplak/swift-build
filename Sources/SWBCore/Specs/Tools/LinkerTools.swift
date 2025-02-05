@@ -573,10 +573,17 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
         // If we are linking Swift and build for debugging, pass the right .swiftmodule file for the current architecture to the
         // linker. This is needed so that debugging these modules works correctly. Note that `swiftModulePaths` will be empty for
         // anything but static archives and object files, because dynamic libraries and frameworks do not require this.
+        guard let ldToolSpecInfo = await cbc.producer.ldLinkerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate) as? DiscoveredLdLinkerToolSpecInfo else {
+            delegate.error("Could not find path to ld binary")
+            return
+        }
         if isLinkUsingSwift && cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) {
             for library in libraries {
-                if let swiftModulePath = library.swiftModulePaths[cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)] {
-                    commandLine += ["-Xlinker", "-add_ast_path", "-Xlinker", swiftModulePath.str]
+                if ldToolSpecInfo.linker == .ld64 {
+                    // 'add_ast_path' is only supported by ld64
+                    if let swiftModulePath = library.swiftModulePaths[cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)] {
+                        commandLine += ["-Xlinker", "-add_ast_path", "-Xlinker", swiftModulePath.str]
+                    }
                 }
                 if let additionalArgsPath = library.swiftModuleAdditionalLinkerArgResponseFilePaths[cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)] {
                     commandLine += ["@\(additionalArgsPath.str)"]
@@ -1220,26 +1227,25 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
 
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
         let alternateLinker = scope.evaluate(BuiltinMacros.ALTERNATE_LINKER)
-
-        let linkerPath = if alternateLinker != "" { Path(alternateLinker) } else { Path("ld") }
+        let linker =  if alternateLinker != "" { Path(alternateLinker) } else { producer.hostOperatingSystem == .windows ? Path("link.exe") : Path("ld") }
 
         // Create the cache key.  This is just the path to the ld linker we would invoke if we were invoking the linker directly.
-        guard let toolPath = producer.executableSearchPaths.lookup(linkerPath) else {
+        // Note: If the linker is an absolute path 'findExectable' will simply return the path to execute.
+        guard let toolPath = producer.executableSearchPaths.findExecutable(operatingSystem: producer.hostOperatingSystem, basename: linker.withoutSuffix) else {
             return nil
         }
 
-        do {
+        do {   
             do {
-                let commandLine = [toolPath.str, "-version_details"]
+                let commandLine = [toolPath.str,  producer.hostOperatingSystem == .windows ? "/VERSION" : "-version_details"]
                 return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, commandLine, { executionResult in
-                    let gnuLD = [
+                    let gnuLD: [Regex<(Substring, version: Substring)>] = [
                         #/GNU ld version (?<version>[\d.]+)-.*/#,
                         #/GNU ld \(GNU Binutils.*\) (?<version>[\d.]+)/#,
                     ]
                     if let match = try gnuLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
                         return DiscoveredLdLinkerToolSpecInfo(linker: .gnuld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
                     }
-
                     let goLD = [
                         #/GNU gold version (?<version>[\d.]+)-.*/#,
                         #/GNU gold \(GNU Binutils.*\) (?<version>[\d.]+)/#,
@@ -1247,7 +1253,14 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
                     if let match = try goLD.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
                         return DiscoveredLdLinkerToolSpecInfo(linker: .gold, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
                     }
-                    
+                    // link.exe has no option to simply dump the version, but if you pass an invalid argument, the program will dump a header that contains the version.
+                    let linkExe = [
+                        #/Microsoft \(R\) Incremental Linker Version (?<version>[\d.]+)/#
+                    ]
+                    if let match = try linkExe.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
+                        return DiscoveredLdLinkerToolSpecInfo(linker: .linkExe, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
+                    }
+
                     struct LDVersionDetails: Decodable {
                         let version: Version
                         let architectures: Set<String>
@@ -1263,6 +1276,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
                     return DiscoveredLdLinkerToolSpecInfo(linker: .ld64, toolPath: toolPath, toolVersion: details.version, architectures: details.architectures)
                 })
             } catch let e as CommandLineOutputJSONParsingError {
+                print("Caught JSON Parsing Error")
                 let vCommandLine = [toolPath.str, "-v"]
                 return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, vCommandLine, { executionResult in
                     let lld = [
@@ -1280,12 +1294,12 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType {
                         if let match = try lld.compactMap({ try $0.firstMatch(in: String(decoding: executionResult.stdout, as: UTF8.self)) }).first {
                             return DiscoveredLdLinkerToolSpecInfo(linker: .lld, toolPath: toolPath, toolVersion: try Version(String(match.output.version)), architectures: Set())
                         }
-                    
                         throw e
                     })
                 })
             }
-        } catch {
+        } catch {  
+            print("Delegate error: \(error)")
             delegate.error(error)
             return nil
         }

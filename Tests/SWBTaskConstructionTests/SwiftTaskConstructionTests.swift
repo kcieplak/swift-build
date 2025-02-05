@@ -2114,6 +2114,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
                     "SWIFT_EXEC": swiftCompilerPath.str,
+                    "ALTERNATE_LINKER": ldPath.str,
                     "SWIFT_VERSION": swiftVersion,
                     "PRODUCT_NAME": "$(TARGET_NAME)",
                 ]),
@@ -2143,7 +2144,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             ])
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
-        await tester.checkBuild { results in
+        await tester.checkBuild() { results in
             results.checkNoDiagnostics()
             results.checkTarget("Executable") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in

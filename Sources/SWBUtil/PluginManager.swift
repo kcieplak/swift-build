@@ -52,7 +52,7 @@ import SWBLibc
     /// The set of registered extension points.
     private var extensionPoints: [String: any ExtensionPoint] = [:]
 
-    private var extensions: [Ref<any ExtensionPoint>: [Any]] = [:]
+    public var extensions: [Ref<any ExtensionPoint>: [Any]] = [:]
 
     private let skipLoadingPluginIdentifiers: Set<String>
 

@@ -29,8 +29,8 @@ fileprivate struct ClangTests: CoreBasedTests {
     /// - remark: See <rdar://83768231&86344993> for more details.
     @Test(.requireSDKs(.host))
     func cPlusPlusLibrary() async throws {
-        func getTestProject(cppLibrarySetting: String) -> TestProject {
-            let testProject = TestProject(
+        func getTestProject(cppLibrarySetting: String) async throws -> TestProject {
+            let testProject = await TestProject(
                 "aProject",
                 groupTree: TestGroup(
                     "SomeFiles",
@@ -45,7 +45,8 @@ fileprivate struct ClangTests: CoreBasedTests {
                             "CODE_SIGN_IDENTITY": "-",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CLANG_CXX_LIBRARY": cppLibrarySetting,
-                            "CLANG_USE_RESPONSE_FILE": "NO"
+                            "CLANG_USE_RESPONSE_FILE": "NO",
+                            "ALTERNATE_LINKER": try ldPath.str
                         ]),
                 ],
                 targets: [
@@ -71,7 +72,7 @@ fileprivate struct ClangTests: CoreBasedTests {
         // Test with an empty setting (the default): -stdlib= should not be passed in this case.
         do {
             let fs = PseudoFS()
-            let testProject = getTestProject(cppLibrarySetting: "")
+            let testProject = try await getTestProject(cppLibrarySetting: "")
             let tester = try TaskConstructionTester(core, testProject)
 
             await tester.checkBuild(runDestination: .host, fs: fs) { results in
@@ -95,7 +96,7 @@ fileprivate struct ClangTests: CoreBasedTests {
         // Test with the setting set to libc++ (which clang supports): -stdlib=libc++ should be passed in this case.
         do {
             let fs = PseudoFS()
-            let testProject = getTestProject(cppLibrarySetting: "libc++")
+            let testProject = try await getTestProject(cppLibrarySetting: "libc++")
             let tester = try TaskConstructionTester(core, testProject)
 
             await tester.checkBuild(runDestination: .host, fs: fs) { results in
@@ -119,7 +120,7 @@ fileprivate struct ClangTests: CoreBasedTests {
         // Test with the setting set to libstdc++ (which clang does not support): -stdlib= should not be passed in this case.
         do {
             let fs = PseudoFS()
-            let testProject = getTestProject(cppLibrarySetting: "libstdc++")
+            let testProject = try await getTestProject(cppLibrarySetting: "libstdc++")
             let tester = try TaskConstructionTester(core, testProject)
 
             await tester.checkBuild(runDestination: .host, fs: fs) { results in

@@ -114,6 +114,7 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                 if driverPayload.explicitModulesEnabled {
                     for job in plannedBuild.explicitModulesPlannedDriverJobs() {
                         for output in job.driverJob.outputs {
+                            //ToDo: need to filter this out based on linker used only valid with ld64
                             if output.fileExtension == "swiftmodule" {
                                 responseFileCommandLine.append(contentsOf: ["-Wl,-add_ast_path", "-Wl,\(output.str)"])
                             }

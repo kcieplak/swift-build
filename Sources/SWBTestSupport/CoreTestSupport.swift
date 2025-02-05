@@ -112,7 +112,6 @@ extension Core {
 
             registerExtraPlugins(pluginManager)
         }
-
         let delegate = delegate ?? TestingCoreDelegate()
         guard let core = await Core.getInitializedCore(delegate, pluginManager: pluginManager, developerPath: developerPath, inferiorProductsPath: inferiorProductsPath, extraPluginRegistration: extraPluginRegistration, additionalContentPaths: additionalContentPaths, environment: environment, buildServiceModTime: Date(), connectionMode: .inProcess) else {
             throw CoreInitializationError(diagnostics: delegate.diagnostics)
