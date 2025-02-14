@@ -141,7 +141,7 @@ import Testing
         }
     }
 
-    @Test(.skipHostOS(.windows, "Failed to obtain command line tool spec info but no errors were emitted"))
+    @Test(.skipHostOS(.windows))
     func discoveredLdLinkerSpecInfo() async throws {
         try await withSpec(LdLinkerSpec.self, .deferred) { (info: DiscoveredLdLinkerToolSpecInfo) in
             #expect(!info.toolPath.isEmpty)
@@ -164,6 +164,22 @@ import Testing
         try await withSpec(LdLinkerSpec.self, .result(status: .exit(0), stdout: Data("GNU ld version 2.29.1-31.amzn2.0.1\n".utf8), stderr: Data())) { (info: DiscoveredLdLinkerToolSpecInfo) in
             #expect(!info.toolPath.isEmpty)
             #expect(info.toolVersion == Version(2, 29, 1))
+            #expect(info.architectures == Set())
+        }
+    }
+
+    @Test(.requireHostOS(.windows))
+    func discoveredLdLinkerSpecInfoWindows() async throws {
+        try await withSpec(LdLinkerSpec.self, .deferred, platform: "windows") { (info: DiscoveredLdLinkerToolSpecInfo) in
+            #expect(!info.toolPath.isEmpty)
+            #expect(info.toolVersion != nil)
+            if let toolVersion = info.toolVersion {
+                #expect(toolVersion > Version(0, 0, 0))
+            }
+        }
+        try await withSpec(LdLinkerSpec.self, .result(status: .exit(0), stdout: Data("Microsoft (R) Incremental Linker Version 14.41.34120.0\n".utf8), stderr: Data()), platform: "windows") { (info: DiscoveredLdLinkerToolSpecInfo) in
+            #expect(!info.toolPath.isEmpty)
+            #expect(info.toolVersion == Version(14, 41, 34120))
             #expect(info.architectures == Set())
         }
     }
