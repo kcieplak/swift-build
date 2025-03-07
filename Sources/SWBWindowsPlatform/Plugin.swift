@@ -58,10 +58,12 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
         guard let dir = try? await findLatestInstallDirectory(fs: fs) else {
             return []
         }
+        // Note: Do not add in the target directories under the host as these will end up in the global search paths, i.e. PATH
+        // Let the commandlinetool discovery add in the target subdirectory based on the targeted architecture.
         if Architecture.hostStringValue == "aarch64" {
-            return [dir.join("bin/Hostarm64/arm64")]
+            return [dir.join("bin/Hostarm64")]
         } else {
-            return [dir.join("bin/Hostx64/x64")]
+            return [dir.join("bin/Hostx64")]
         }
     }
 }

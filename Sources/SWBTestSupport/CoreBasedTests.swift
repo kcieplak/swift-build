@@ -272,23 +272,27 @@ extension CoreBasedTests {
             return nil
         }
     }
-    package var linkPath: Path? {
-        get async throws {
-            let (core, defaultToolchain) = try await coreAndToolchain()
-            if core.hostOperatingSystem != .windows {
-                // Most unixes have a link executable, but that is not a linker
-                return nil
-            }
-            if let executable = defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "link") {
-                return executable
-            }
-            for platform in core.platformRegistry.platforms {
-                if let executable = platform.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "link") {
-                    return executable
-                }
-            }
+    package func linkPath(_ targetArchitecture: String) async throws -> Path? {
+        let (core, defaultToolchain) = try await self.coreAndToolchain()
+        let prefixMapping = [ "x86_64": "x86", "aarch64": "arm64", "arm64": "arm64" ]
+
+        guard let prefix = prefixMapping[targetArchitecture] else {
             return nil
         }
+        let linkerPath = Path(prefix).join("link").str
+        if core.hostOperatingSystem != .windows {
+            // Most unixes have a link executable, but that is not a linker
+            return nil
+        }
+        if let executable = defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: linkerPath) {
+            return executable
+        }
+        for platform in core.platformRegistry.platforms {
+            if let executable = platform.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: linkerPath) {
+                return executable
+            }
+        }
+        return nil
     }
 
     package var lldPath: Path? {
